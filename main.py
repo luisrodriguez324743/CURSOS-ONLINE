@@ -8,7 +8,10 @@ from src.crud.modulo_crud import ModuloCRUD
 from src.crud.pago_crud import PagoCRUD
 from src.crud.progreso_crud import ProgresoCRUD
 from src.entities.inscripcion import Inscripcion
+from src.entities.curso import Curso
 from src.entities.progreso import Progreso
+from src.entities.resena import Resena
+from uuid import UUID
 
 # Usuario, Resena, Rol
 from src.crud.resena_crud import ResenaCRUD
@@ -29,7 +32,7 @@ def inicializar_crud() -> dict[str, object]:
     )
 
     cursos = CursoCRUD()
-    cursos.crear_cursos_iniciales()
+    Curso.crear_cursos_iniciales(cursos)
 
     return {
         # USUARIO; ROL, RESENA
@@ -97,17 +100,26 @@ def menu_usuario(usuario: Usuario, datos: dict[str, object]) -> None:
     while True:
         print(f"\n--- MENÚ DE USUARIO ({usuario.nombre_usuario}) ---")
         print("1. Ver mi perfil")
-        print("2. Gestionar mis reseñas")
-        print("3. Cerrar sesión")
+        print("2. Ver cursos")
+        print("3. Inscribirme y acceder a un curso")
+        print("4. Ver mis cursos")
+        print("5. Gestionar mis reseñas")
+        print("6. Cerrar sesión")
         opcion = leer_opcion("Opción: ")
 
         if opcion == "1":
-            print(f"\nNombre: {usuario.primer_nombre} {usuario.primer_apellido}")
-            print(f"Email: {usuario.email}")
+            print(f"\nNombre: {usuario.nombre}")
+            print(f"Email: {usuario.correo}")
             print(f"ID Rol: {usuario.id_rol}")
         elif opcion == "2":
-            print("\n[Módulo de Reseñas en construcción]")
+            Curso.mostrar_cursos(datos["cursos"])
         elif opcion == "3":
+            Curso.acceder_curso(datos["cursos"], usuario, datos)
+        elif opcion == "4":
+            Curso.mostrar_mis_cursos(datos["cursos"], usuario, datos)
+        elif opcion == "5":
+            print("\n[Módulo de Reseñas en construcción]")
+        elif opcion == "6":
             print("Sesión cerrada.")
             return
         else:
