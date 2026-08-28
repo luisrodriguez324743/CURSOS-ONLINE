@@ -10,7 +10,6 @@ from src.crud.progreso_crud import ProgresoCRUD
 from src.crud.resena_crud import ResenaCRUD
 from src.crud.rol_crud import RolCRUD
 from src.crud.usuario_crud import UsuarioCRUD
-from src.entities.curso import Curso
 from src.entities.inscripcion import Inscripcion
 from src.entities.progreso import Progreso
 from src.entities.rol import Rol
@@ -27,22 +26,7 @@ def inicializar_crud() -> dict[str, object]:
     )
 
     cursos = CursoCRUD()
-    cursos.crear(
-        Curso(
-            nombre="Python desde cero",
-            descripcion="Fundamentos del lenguaje Python",
-            precio=25.0,
-            id_profesor=None,
-        )
-    )
-    cursos.crear(
-        Curso(
-            nombre="Bases de datos",
-            descripcion="Modelado y consultas SQL",
-            precio=30.0,
-            id_profesor=None,
-        )
-    )
+    cursos.crear_cursos_iniciales()
 
     return {
         "usuarios": UsuarioCRUD(),
@@ -64,17 +48,6 @@ def inicializar_crud() -> dict[str, object]:
 
 def leer_opcion(mensaje: str) -> str:
     return input(mensaje).strip()
-
-
-def mostrar_cursos(cursos: CursoCRUD) -> None:
-    disponibles = cursos.listar()
-    if not disponibles:
-        print("No hay cursos disponibles.")
-        return
-
-    print("\nCursos disponibles:")
-    for posicion, curso in enumerate(disponibles, start=1):
-        print(f"{posicion}. {curso.nombre} | ${curso.precio:.2f} | {curso.descripcion}")
 
 
 def registrar_usuario(datos: dict[str, object]) -> None:
@@ -110,80 +83,6 @@ def iniciar_sesion(datos: dict[str, object]) -> Usuario | None:
     return usuario
 
 
-def acceder_curso(usuario: Usuario, datos: dict[str, object]) -> None:
-    cursos = datos["cursos"]
-    inscripciones = datos["inscripciones"]
-    progresos = datos["progresos"]
-    disponibles = cursos.listar()
-    mostrar_cursos(cursos)
-    if not disponibles:
-        return
-
-    try:
-        indice = int(leer_opcion("Selecciona el número del curso: ")) - 1
-        curso = disponibles[indice]
-    except (ValueError, IndexError):
-        print("Selección inválida.")
-        return
-
-    inscripcion = next(
-        (
-            registro
-            for registro in inscripciones.listar()
-            if registro.id_usuario == usuario.id_usuario
-            and registro.id_curso == curso.id_curso
-        ),
-        None,
-    )
-    if inscripcion is None:
-        inscripcion = inscripciones.crear(
-            Inscripcion(
-                id_usuario=usuario.id_usuario, id_curso=curso.id_curso, estado="activa"
-            )
-        )
-        progresos.crear(
-            Progreso(
-                id_usuario=usuario.id_usuario,
-                id_curso=curso.id_curso,
-                estado="En progreso",
-            )
-        )
-        print(f"Inscripción creada para '{curso.nombre}'.")
-    else:
-        print(f"Ya estás inscrito en '{curso.nombre}'.")
-
-    print(f"Accediendo al curso: {curso.nombre}")
-    print(f"Descripción: {curso.descripcion}")
-    print("Tu progreso está disponible en la opción 'Mis cursos'.")
-
-
-def mostrar_mis_cursos(usuario: Usuario, datos: dict[str, object]) -> None:
-    cursos = datos["cursos"]
-    inscripciones = [
-        registro
-        for registro in datos["inscripciones"].listar()
-        if registro.id_usuario == usuario.id_usuario
-    ]
-    if not inscripciones:
-        print("Todavía no tienes cursos inscritos.")
-        return
-
-    print("\nMis cursos:")
-    for inscripcion in inscripciones:
-        curso = cursos.obtener(inscripcion.id_curso)
-        progreso = next(
-            (
-                registro
-                for registro in datos["progresos"].listar()
-                if registro.id_usuario == usuario.id_usuario
-                and registro.id_curso == inscripcion.id_curso
-            ),
-            None,
-        )
-        porcentaje = progreso.porcentaje if progreso else 0.0
-        print(f"- {curso.nombre} | {porcentaje:.0f}% | {inscripcion.estado}")
-
-
 def menu_usuario(usuario: Usuario, datos: dict[str, object]) -> None:
     while True:
         print("\n--- MENÚ DE USUARIO ---")
@@ -194,11 +93,11 @@ def menu_usuario(usuario: Usuario, datos: dict[str, object]) -> None:
         opcion = leer_opcion("Opción: ")
 
         if opcion == "1":
-            mostrar_cursos(datos["cursos"])
+            datos["cursos"].mostrar_cursos()
         elif opcion == "2":
-            acceder_curso(usuario, datos)
+            datos["cursos"].acceder_curso(usuario, datos)
         elif opcion == "3":
-            mostrar_mis_cursos(usuario, datos)
+            datos["cursos"].mostrar_mis_cursos(usuario, datos)
         elif opcion == "4":
             print("Sesión cerrada.")
             return
