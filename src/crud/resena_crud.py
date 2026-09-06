@@ -1,7 +1,7 @@
 from uuid import UUID
 from sqlalchemy import func
-from database.connection import get_session
-from src.models.resena import Resena
+from src.database.connection import get_session
+from src.entities.resena import Resena
 
 
 class ResenaCRUD:

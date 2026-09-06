@@ -2,7 +2,8 @@ import uuid
 from datetime import datetime, date
 from sqlalchemy import String, Text, Integer, Boolean, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from database.connection import Base
+from src.database.connection import Base
+
 
 class Usuario(Base):
     __tablename__ = "usuario"
