@@ -1,31 +1,67 @@
 from uuid import UUID
-from src.entities.resena import Resena
-from .base_crud import CRUD
+from sqlalchemy import func
+from database.connection import get_session
+from src.models.resena import Resena
 
 
-class ResenaCRUD(CRUD[Resena]):
-    def __init__(self) -> None:
-        super().__init__(Resena)
+class ResenaCRUD:
+    def crear(
+        self,
+        calificacion: int,
+        id_usuario: UUID,
+        #id_curso: UUID,
+        comentario: str | None = None,
+    ) -> Resena:
+        session = get_session()
+        try:
+            resena = Resena(
+                calificacion=calificacion,
+                comentario=comentario,
+                id_usuario=id_usuario,
+                #id_curso=id_curso,
+            )
+            session.add(resena)
+            session.commit()
+            session.refresh(resena)
+            return resena
+        finally:
+            session.close()
 
-    def obtener_por_curso(self, id_curso: UUID) -> list[Resena]:
+    def listar(self) -> list[Resena]:
+        session = get_session()
+        try:
+            return session.query(Resena).all()
+        finally:
+            session.close()
+
+    #def obtener_por_curso(self, id_curso: UUID) -> list[Resena]:
         """Devuelve todas las reseñas pertenecientes a un curso específico."""
-        return [
-            resena for resena in self.registros.values() if resena.id_curso == id_curso
-        ]
+        session = get_session()
+        try:
+            return session.query(Resena).filter_by(id_curso=id_curso).all()
+        finally:
+            session.close()
 
     def obtener_por_usuario(self, id_usuario: UUID) -> list[Resena]:
         """Devuelve todas las reseñas escritas por un usuario."""
-        return [
-            resena
-            for resena in self.registros.values()
-            if resena.id_usuario == id_usuario
-        ]
+        session = get_session()
+        try:
+            return session.query(Resena).filter_by(id_usuario=id_usuario).all()
+        finally:
+            session.close()
 
-    def promedio_calificacion_curso(self, id_curso: UUID) -> float:
-        """Calcula el promedio de estrellas/puntuación de un curso."""
-        reseñas_curso = self.obtener_por_curso(id_curso)
-        if not reseñas_curso:
-            return 0.0
-
-        suma = sum(r.calificacion for r in reseñas_curso)
-        return round(suma / len(reseñas_curso), 2)
+    #def promedio_calificacion_curso(self, id_curso: UUID) -> float:
+        """Calcula el promedio de calificación usando funciones agregadas de la base de datos."""
+        session = get_session()
+        try:
+            # func.avg calcula directamente el promedio en la Base de Datos (Neon DB)
+            resultado = (
+                session.query(func.avg(Resena.calificacion))
+                .filter_by(id_curso=id_curso)
+                .scalar()
+            )
+            if resultado is None:
+                return 0.0
+            return round(float(resultado), 2)
+        finally:
+            session.close()
