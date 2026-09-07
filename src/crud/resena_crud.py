@@ -9,7 +9,7 @@ class ResenaCRUD:
         self,
         calificacion: int,
         id_usuario: UUID,
-        #id_curso: UUID,
+        id_curso: UUID,
         comentario: str | None = None,
     ) -> Resena:
         session = get_session()
@@ -18,7 +18,7 @@ class ResenaCRUD:
                 calificacion=calificacion,
                 comentario=comentario,
                 id_usuario=id_usuario,
-                #id_curso=id_curso,
+                id_curso=id_curso,
             )
             session.add(resena)
             session.commit()
@@ -34,7 +34,7 @@ class ResenaCRUD:
         finally:
             session.close()
 
-    #def obtener_por_curso(self, id_curso: UUID) -> list[Resena]:
+    def obtener_por_curso(self, id_curso: UUID) -> list[Resena]:
         """Devuelve todas las reseñas pertenecientes a un curso específico."""
         session = get_session()
         try:
@@ -50,7 +50,7 @@ class ResenaCRUD:
         finally:
             session.close()
 
-    #def promedio_calificacion_curso(self, id_curso: UUID) -> float:
+    def promedio_calificacion_curso(self, id_curso: UUID) -> float:
         """Calcula el promedio de calificación usando funciones agregadas de la base de datos."""
         session = get_session()
         try:

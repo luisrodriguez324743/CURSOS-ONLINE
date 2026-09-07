@@ -10,11 +10,11 @@ import uuid
 from datetime import date
 from src.database.connection import get_session
 
-# --- IMPORTACIONES DESDE LA CARPETA 'entities' ---
+# --- IMPORTACIONES DE TODAS LAS ENTIDADES ---
 from src.entities.rol import Rol
 from src.entities.usuario import Usuario
+from src.entities.curso import Curso
 from src.entities.resena import Resena
-# from src.entities.curso import Curso  # Comentado hasta que tu compañero cree la entidad
 
 
 def seed_data():
@@ -94,7 +94,7 @@ def seed_data():
                     correo=u_data["correo"],
                     clave=u_data["clave"],
                     area=u_data["area"],
-                    id_rol=u_data["rol"].id_rol,
+                    id_rol=u_data["rol"].id_rol,  # Pasamos únicamente el ID UUID
                     activo=True,
                     fecha_creacion=date.today()
                 )
@@ -108,15 +108,34 @@ def seed_data():
         session.commit()
 
         # -------------------------------------------------------------
-        # 3. POBLAR RESEÑAS
+        # 3. POBLAR CURSO (Requisito previo para la Reseña)
+        # -------------------------------------------------------------
+        instructor = next((u for u in usuarios_creados if u.nombre_usuario == "prof_maria"), None)
+        
+        curso = session.query(Curso).filter_by(nombre="Python y FastAPI desde Cero").first()
+        if not curso and instructor:
+            curso = Curso(
+                nombre="Python y FastAPI desde Cero",
+                descripcion="Aprende a construir APIs profesionales.",
+                precio=49.99,
+                id_profesor=instructor.id_usuario
+            )
+            session.add(curso)
+            session.commit()
+            session.refresh(curso)
+            print(f"  [+] Curso de prueba creado: {curso.nombre}")
+        elif curso:
+            print(f"  [-] Curso ya existente: {curso.nombre}")
+
+        # -------------------------------------------------------------
+        # 4. POBLAR RESEÑAS
         # -------------------------------------------------------------
         estudiante = next((u for u in usuarios_creados if u.nombre_usuario == "juan_perez"), None)
 
-        if estudiante:
-            id_curso_ficticio = uuid.uuid4()
-
+        if estudiante and curso:
             resena_existente = session.query(Resena).filter_by(
-                id_usuario=estudiante.id_usuario
+                id_usuario=estudiante.id_usuario,
+                id_curso=curso.id_curso
             ).first()
 
             if not resena_existente:
@@ -125,7 +144,7 @@ def seed_data():
                     calificacion=5,
                     comentario="¡Excelente curso! Muy bien explicado.",
                     id_usuario=estudiante.id_usuario,
-                    id_curso=id_curso_ficticio,
+                    id_curso=curso.id_curso,  # Se usa el ID del curso real
                     fecha_creacion=date.today()
                 )
                 session.add(resena)
