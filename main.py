@@ -26,15 +26,15 @@ from src.entities.usuario import Usuario
 # USUARIO, ROL, RESENA
 def inicializar_crud() -> dict[str, object]:
     roles = RolCRUD()
-    rol_estudiante = roles.crear(
-        Rol(nombre="Estudiante", descripcion="Usuario que toma cursos")
+    rol_estudiante = roles.buscar_por_nombre("Estudiante") or roles.crear(
+        "Estudiante", "Usuario que toma cursos"
     )
-    rol_profesor = roles.crear(
-        Rol(nombre="Profesor", descripcion="Usuario que publica cursos")
+    rol_profesor = roles.buscar_por_nombre("Profesor") or roles.crear(
+        "Profesor", "Usuario que publica cursos"
     )
 
     cursos = CursoCRUD()
-    Curso.crear_cursos_iniciales(cursos)
+    cursos.crear_cursos_iniciales()
 
     return {
         # USUARIO; ROL, RESENA
@@ -85,16 +85,19 @@ def registrar_usuario(datos: dict[str, object]) -> None:
         print("Ese nombre de usuario ya existe.")
         return
 
-    usuario = Usuario(
-        nombre=leer_opcion("Nombre completo: "),
+    usuario = usuarios.crear(
+        primer_nombre=leer_opcion("Primer nombre: "),
+        primer_apellido=leer_opcion("Primer apellido: "),
         nombre_usuario=nombre_usuario,
         correo=leer_opcion("Correo electrónico: "),
-        password=leer_opcion("Contraseña: "),
+        clave=leer_opcion("Contraseña: "),
         area=leer_opcion("Área (ej. Sistemas, Educación): "),
         id_rol=rol_estudiante.id_rol,
     )
 
-    usuarios.crear(usuario)
+    if usuario is None:
+        print("No se pudo crear el usuario: el nombre o correo ya existe.")
+        return
     print(f"Usuario creado correctamente. Tu ID es: {usuario.id_usuario}")
 
 
@@ -105,7 +108,7 @@ def procesar_compra_curso(usuario: Usuario, datos: dict[str, object]) -> None:
     inscripciones = datos["inscripciones"]
     progresos = datos["progresos"]
 
-    Curso.mostrar_cursos(cursos)
+    cursos.mostrar_cursos()
     disponibles = cursos.listar()
     if not disponibles:
         return
@@ -372,11 +375,11 @@ def menu_usuario(usuario: Usuario, datos: dict[str, object]) -> None:
             print(f"Email: {usuario.correo}")
             print(f"ID Rol: {usuario.id_rol}")
         elif opcion == "2":
-            Curso.mostrar_cursos(datos["cursos"])
+            datos["cursos"].mostrar_cursos()
         elif opcion == "3":
             procesar_compra_curso(usuario, datos)
         elif opcion == "4":
-            Curso.mostrar_mis_cursos(datos["cursos"], usuario, datos)
+            datos["cursos"].mostrar_mis_cursos(usuario, datos)
         elif opcion == "5":
             mostrar_historial_pagos(usuario, datos)
         elif opcion == "6":
