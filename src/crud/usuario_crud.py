@@ -1,6 +1,6 @@
 from uuid import UUID
-from database.connection import get_session
-from src.models.usuario import Usuario  # Ajusta la importación según la ubicación de tus modelos
+from src.database.connection import get_session
+from src.entities.usuario import Usuario
 
 
 class UsuarioCRUD:
