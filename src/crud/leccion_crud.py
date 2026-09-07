@@ -1,23 +1,21 @@
+from typing import Any
+from uuid import UUID
+
+from src.database.connection import get_session
 from src.entities.leccion import Leccion
 from src.entities.modulo import Modulo
-from .base_crud import CRUD
 
 
-class LeccionCRUD(CRUD[Leccion]):
-    def __init__(self) -> None:
-        super().__init__(Leccion)
-
+class LeccionCRUD:
     def crear(self, registro: Leccion) -> Leccion:
-        self.validar(registro)
-        return super().crear(registro)
-
-    def validar(self, leccion: Leccion) -> None:
-        if not leccion.nombre.strip():
-            raise ValueError("La lección debe tener un nombre.")
-        if leccion.orden < 0:
-            raise ValueError("El orden no puede ser negativo.")
-        if leccion.duracion < 0:
-            raise ValueError("La duración no puede ser negativa.")
+        session = get_session()
+        try:
+            session.add(registro)
+            session.commit()
+            session.refresh(registro)
+            return registro
+        finally:
+            session.close()
 
     def crear_para_modulo(
         self,
@@ -27,18 +25,73 @@ class LeccionCRUD(CRUD[Leccion]):
         orden: int = 0,
         duracion: int = 0,
     ) -> Leccion:
-        """Construye, valida, registra y asocia una lección."""
-        leccion = self.crear(
+        return self.crear(
             Leccion(
                 nombre=nombre,
                 contenido=contenido,
                 orden=orden,
+                id_modulo=modulo.id_modulo,
                 duracion=duracion,
             )
         )
-        modulo.agregar_leccion(leccion)
-        return leccion
+
+    def listar(self) -> list[Leccion]:
+        session = get_session()
+        try:
+            return session.query(Leccion).all()
+        finally:
+            session.close()
 
     def listar_del_modulo(self, modulo: Modulo) -> list[Leccion]:
-        """Lista las lecciones pertenecientes al módulo."""
-        return modulo.lecciones_del_modulo(self.listar())
+        session = get_session()
+        try:
+            return (
+                session.query(Leccion)
+                .filter_by(id_modulo=modulo.id_modulo)
+                .order_by(Leccion.orden)
+                .all()
+            )
+        finally:
+            session.close()
+
+    def obtener(self, identificador: UUID) -> Leccion | None:
+        session = get_session()
+        try:
+            return session.query(Leccion).filter_by(id_leccion=identificador).first()
+        finally:
+            session.close()
+
+    def actualizar(
+        self, identificador: UUID, cambios: dict[str, Any]
+    ) -> Leccion | None:
+        session = get_session()
+        try:
+            leccion = session.query(Leccion).filter_by(id_leccion=identificador).first()
+            if leccion is None:
+                return None
+            for nombre, valor in cambios.items():
+                if nombre == "nombre":
+                    leccion.set_nombre(valor)
+                elif nombre == "orden":
+                    leccion.set_orden(valor)
+                elif nombre == "duracion":
+                    leccion.set_duracion(valor)
+                elif nombre in {"contenido", "id_modulo"}:
+                    setattr(leccion, nombre, valor)
+            session.commit()
+            session.refresh(leccion)
+            return leccion
+        finally:
+            session.close()
+
+    def eliminar(self, identificador: UUID) -> bool:
+        session = get_session()
+        try:
+            leccion = session.query(Leccion).filter_by(id_leccion=identificador).first()
+            if leccion is None:
+                return False
+            session.delete(leccion)
+            session.commit()
+            return True
+        finally:
+            session.close()
