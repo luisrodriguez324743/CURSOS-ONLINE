@@ -1,6 +1,6 @@
 from uuid import UUID
-from database.connection import get_session
-from src.models.rol import Rol
+from src.database.connection import get_session
+from src.entities.rol import Rol
 
 
 class RolCRUD:
