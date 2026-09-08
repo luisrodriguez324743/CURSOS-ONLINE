@@ -2,11 +2,12 @@ import uuid
 from typing import TYPE_CHECKING
 
 from sqlalchemy import ForeignKey, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database.connection import Base
 
 if TYPE_CHECKING:
+    from .curso import Curso
     from .leccion import Leccion
 
 
@@ -19,6 +20,10 @@ class Modulo(Base):
     orden: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     id_curso: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("curso.id_curso"), nullable=False
+    )
+    curso: Mapped["Curso"] = relationship(back_populates="modulos")
+    lecciones: Mapped[list["Leccion"]] = relationship(
+        back_populates="modulo", cascade="all, delete-orphan"
     )
 
     def __init__(
