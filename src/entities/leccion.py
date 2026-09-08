@@ -1,9 +1,13 @@
 import uuid
+from typing import TYPE_CHECKING
 
 from sqlalchemy import ForeignKey, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database.connection import Base
+
+if TYPE_CHECKING:
+    from .modulo import Modulo
 
 
 class Leccion(Base):
@@ -17,6 +21,7 @@ class Leccion(Base):
         ForeignKey("modulo.id_modulo"), nullable=False
     )
     duracion: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    modulo: Mapped["Modulo"] = relationship(back_populates="lecciones")
 
     def __init__(
         self,
