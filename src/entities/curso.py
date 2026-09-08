@@ -2,7 +2,7 @@ import uuid
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Float, ForeignKey, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database.connection import Base
 
@@ -19,6 +19,9 @@ class Curso(Base):
     precio: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     id_profesor: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("usuario.id_usuario"), nullable=True
+    )
+    modulos: Mapped[list["Modulo"]] = relationship(
+        back_populates="curso", cascade="all, delete-orphan"
     )
 
     def __init__(
