@@ -1,148 +1,87 @@
-from dataclasses import dataclass, field
-from uuid import UUID, uuid4
+import uuid
+from typing import TYPE_CHECKING
 
-from .modulo import Modulo
+from sqlalchemy import Float, ForeignKey, String, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from src.database.connection import Base
+
+if TYPE_CHECKING:
+    from .modulo import Modulo
 
 
-@dataclass
-class Curso:
-    id_curso: UUID = field(default_factory=uuid4)
-    nombre: str = ""
-    descripcion: str = ""
-    precio: float = 0.0
-    id_profesor: UUID | None = None
+class Curso(Base):
+    __tablename__ = "curso"
 
-    def __post_init__(self) -> None:
-        if not self.nombre.strip():
-            raise ValueError("El curso debe tener un nombre.")
-        if self.precio < 0:
-            raise ValueError("El precio no puede ser negativo.")
+    id_curso: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    nombre: Mapped[str] = mapped_column(String(150), nullable=False)
+    descripcion: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    precio: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    id_profesor: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("usuario.id_usuario"), nullable=True
+    )
+    modulos: Mapped[list["Modulo"]] = relationship(
+        back_populates="curso", cascade="all, delete-orphan"
+    )
 
-    @classmethod
-    def crear_curso(
-        cls,
-        cursos,
+    def __init__(
+        self,
         nombre: str,
         descripcion: str = "",
         precio: float = 0.0,
-        id_profesor: UUID | None = None,
-    ) -> "Curso":
-        return cursos.crear(
-            cls(
-                nombre=nombre,
-                descripcion=descripcion,
-                precio=precio,
-                id_profesor=id_profesor,
-            )
-        )
+        id_profesor: uuid.UUID | None = None,
+        id_curso: uuid.UUID | None = None,
+    ) -> None:
+        self.set_nombre(nombre)
+        self.set_descripcion(descripcion)
+        self.set_precio(precio)
+        self.set_id_profesor(id_profesor)
+        if id_curso is not None:
+            self.set_id_curso(id_curso)
 
-    @classmethod
-    def crear_cursos_iniciales(cls, cursos) -> None:
-        cursos_iniciales = (
-            ("Python desde cero", "Fundamentos del lenguaje Python", 25.0),
-            ("Bases de datos", "Modelado y consultas SQL", 30.0),
-            (
-                "Desarrollo web",
-                "Creación de sitios web con HTML, CSS y JavaScript",
-                35.0,
-            ),
-            (
-                "Diseño de interfaces",
-                "Principios de diseño UX y creación de prototipos",
-                28.0,
-            ),
-        )
-        for nombre, descripcion, precio in cursos_iniciales:
-            cls.crear_curso(cursos, nombre, descripcion, precio)
+    def get_id_curso(self) -> uuid.UUID:
+        return self.id_curso
 
-    @staticmethod
-    def mostrar_cursos(cursos) -> None:
-        registros = cursos.listar()
-        if not registros:
-            print("No hay cursos disponibles.")
-            return
+    def set_id_curso(self, id_curso: uuid.UUID) -> None:
+        self.id_curso = id_curso
 
-        print("\nCursos disponibles:")
-        for posicion, curso in enumerate(registros, start=1):
-            print(
-                f"{posicion}. {curso.nombre} | ${curso.precio:.2f} | {curso.descripcion}"
-            )
+    def get_nombre(self) -> str:
+        return self.nombre
 
-    @staticmethod
-    def acceder_curso(cursos, usuario, datos: dict[str, object]) -> None:
-        from src.entities.inscripcion import Inscripcion
-        from src.entities.progreso import Progreso
+    def set_nombre(self, nombre: str) -> None:
+        if not nombre.strip():
+            raise ValueError("El curso debe tener un nombre.")
+        self.nombre = nombre
 
-        inscripciones = datos["inscripciones"]
-        progresos = datos["progresos"]
-        disponibles = cursos.listar()
+    def get_descripcion(self) -> str:
+        return self.descripcion
 
-        if not disponibles:
-            print("No hay cursos disponibles.")
-            return
+    def set_descripcion(self, descripcion: str) -> None:
+        self.descripcion = descripcion
 
-        Curso.mostrar_cursos(cursos)
-        try:
-            indice = int(input("Selecciona el número del curso: ")) - 1
-            curso = disponibles[indice]
-        except (ValueError, IndexError):
-            print("Selección inválida.")
-            return
+    def get_precio(self) -> float:
+        return self.precio
 
-        inscrito = next(
-            (
-                registro
-                for registro in inscripciones.listar()
-                if registro.id_usuario == usuario.id_usuario
-                and registro.id_curso == curso.id_curso
-            ),
-            None,
-        )
-        if inscrito is None:
-            inscripciones.crear(
-                Inscripcion(
-                    id_usuario=usuario.id_usuario,
-                    id_curso=curso.id_curso,
-                    estado="activa",
-                )
-            )
-            progresos.crear(
-                Progreso(
-                    id_usuario=usuario.id_usuario,
-                    id_curso=curso.id_curso,
-                    estado="En progreso",
-                )
-            )
-            print(f"Inscripción creada para '{curso.nombre}'.")
-        else:
-            print(f"Ya estás inscrito en '{curso.nombre}'.")
+    def set_precio(self, precio: float) -> None:
+        if precio < 0:
+            raise ValueError("El precio no puede ser negativo.")
+        self.precio = precio
 
-        print(f"Accediendo al curso: {curso.nombre}")
-        print(f"Descripción: {curso.descripcion}")
-        print("Tu progreso está disponible en la opción 'Mis cursos'.")
+    def get_id_profesor(self) -> uuid.UUID | None:
+        return self.id_profesor
 
-    @staticmethod
-    def mostrar_mis_cursos(cursos, usuario, datos: dict[str, object]) -> None:
-        inscripciones = [
-            registro
-            for registro in datos["inscripciones"].listar()
-            if registro.id_usuario == usuario.id_usuario
-        ]
-        if not inscripciones:
-            print("Todavía no tienes cursos inscritos.")
-            return
+    def set_id_profesor(self, id_profesor: uuid.UUID | None) -> None:
+        self.id_profesor = id_profesor
 
-        print("\nMis cursos:")
-        for inscripcion in inscripciones:
-            curso = cursos.obtener(inscripcion.id_curso)
-            progreso = next(
-                (
-                    registro
-                    for registro in datos["progresos"].listar()
-                    if registro.id_usuario == usuario.id_usuario
-                    and registro.id_curso == inscripcion.id_curso
-                ),
-                None,
-            )
-            porcentaje = progreso.porcentaje if progreso else 0.0
-            print(f"- {curso.nombre} | {porcentaje:.0f}% | {inscripcion.estado}")
+    def agregar_modulo(self, modulo: "Modulo") -> None:
+        """Asocia un módulo con este curso."""
+        modulo.set_id_curso(self.id_curso)
+
+    def quitar_modulo(self, modulo: "Modulo") -> None:
+        """Desasocia un módulo si pertenece a este curso."""
+        if modulo.pertenece_a(self.id_curso):
+            modulo.set_id_curso(None)
+
+    def modulos_del_curso(self, modulos: list["Modulo"]) -> list["Modulo"]:
+        """Obtiene los módulos asociados a este curso."""
+        return [modulo for modulo in modulos if modulo.pertenece_a(self.id_curso)]
