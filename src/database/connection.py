@@ -10,7 +10,7 @@ if not DATABASE_URL:
     raise ValueError("Falta DATABASE_URL en el archivo .env")
 
 engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(bind=engine)
+SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
 
 
 class Base(DeclarativeBase):

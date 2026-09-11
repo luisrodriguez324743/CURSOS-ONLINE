@@ -1,0 +1,12 @@
+from src.database.connection import Base, engine
+from src.database.seeders import seed
+
+
+def init_db() -> None:
+    Base.metadata.create_all(bind=engine)
+
+
+if __name__ == "__main__":
+    init_db()
+    seed()
+    print("Base de datos inicializada correctamente.")

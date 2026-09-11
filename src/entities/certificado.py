@@ -1,19 +1,39 @@
-from dataclasses import dataclass, field
 from datetime import datetime
 from uuid import UUID, uuid4
 
+from sqlalchemy import DateTime, String
+from sqlalchemy.dialects.postgresql import UUID as PGUUID
+from sqlalchemy.orm import Mapped, mapped_column
 
-@dataclass
-class Certificado:
-    id_certificado: UUID = field(default_factory=uuid4)
-    fecha_emision: datetime = field(default_factory=datetime.now)
-    codigo: str = ""
-    id_usuario: UUID | None = None
-    id_curso: UUID | None = None
+from src.database.connection import Base
 
-    def __post_init__(self) -> None:
-        if not self.codigo:
-            self.codigo = f"CERT-{self.id_certificado.hex[:8].upper()}"
+
+class Certificado(Base):
+    __tablename__ = "certificados"
+
+    id_certificado: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    fecha_emision: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.now, nullable=False
+    )
+    codigo: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    id_usuario: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True), nullable=True)
+    id_curso: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True), nullable=True)
+
+    def __init__(
+        self,
+        fecha_emision: datetime | None = None,
+        codigo: str | None = None,
+        id_usuario: UUID | None = None,
+        id_curso: UUID | None = None,
+        **kwargs,
+    ) -> None:
+        super().__init__(**kwargs)
+        self.fecha_emision = fecha_emision or datetime.now()
+        self.codigo = codigo or f"CERT-{uuid4().hex[:8].upper()}"
+        self.id_usuario = id_usuario
+        self.id_curso = id_curso
 
     @staticmethod
     def puede_emitirse(
@@ -79,8 +99,16 @@ class Certificado:
             print(mensaje)
             return None
 
-        certificado = cls(id_usuario=id_usuario, id_curso=id_curso)
-        return certificado
+        return cls(id_usuario=id_usuario, id_curso=id_curso)
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "id_certificado": str(self.id_certificado),
+            "fecha_emision": self.fecha_emision.isoformat(),
+            "codigo": self.codigo,
+            "id_usuario": str(self.id_usuario) if self.id_usuario else None,
+            "id_curso": str(self.id_curso) if self.id_curso else None,
+        }
 
     def resumen(self) -> str:
         return (
