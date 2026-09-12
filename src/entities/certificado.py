@@ -9,7 +9,7 @@ from src.database.connection import Base
 
 
 class Certificado(Base):
-    __tablename__ = "certificados"
+    __tablename__ = "certificado"
 
     id_certificado: Mapped[UUID] = mapped_column(
         PGUUID(as_uuid=True), primary_key=True, default=uuid4

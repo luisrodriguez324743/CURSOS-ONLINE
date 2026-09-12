@@ -9,7 +9,7 @@ from src.database.connection import Base
 
 
 class Inscripcion(Base):
-    __tablename__ = "inscripciones"
+    __tablename__ = "inscripcion"
 
     id_inscripcion: Mapped[UUID] = mapped_column(
         PGUUID(as_uuid=True), primary_key=True, default=uuid4
