@@ -12,17 +12,37 @@ class LeccionCRUD:
         return input(mensaje).strip()
 
     def crear_leccion_instructor(self, usuario, datos: dict[str, object]) -> None:
-        cursos = datos["modulos"].cursos_del_instructor(usuario, datos)
+        cursos = datos["cursos"].listar()
+        if not cursos:
+            print("No hay cursos disponibles para crear lecciones.")
+            return
+
+        print("\nCursos disponibles:")
+        for indice, curso in enumerate(cursos, start=1):
+            profesor = (
+                datos["usuarios"].obtener_por_id(curso.id_profesor)
+                if curso.id_profesor
+                else None
+            )
+            nombre_profesor = profesor.nombre_usuario if profesor else "Sin profesor"
+            print(f"{indice}. {curso.nombre} | Profesor: {nombre_profesor}")
+
+        try:
+            curso = cursos[int(self._leer_opcion("Selecciona el curso: ")) - 1]
+        except (ValueError, IndexError):
+            print("Selección de curso inválida.")
+            return
+
         modulos = [
             modulo
             for modulo in datos["modulos"].listar()
-            if any(curso.id_curso == modulo.id_curso for curso in cursos)
+            if modulo.id_curso == curso.id_curso
         ]
         if not modulos:
-            print("No tienes módulos para crear lecciones.")
+            print("Este curso no tiene módulos para crear lecciones.")
             return
 
-        print("\nTus módulos:")
+        print(f"\nMódulos de '{curso.nombre}':")
         for indice, modulo in enumerate(modulos, start=1):
             print(f"{indice}. {modulo.nombre}")
 

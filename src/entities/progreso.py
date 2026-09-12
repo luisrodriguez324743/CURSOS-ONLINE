@@ -1,18 +1,29 @@
-from dataclasses import dataclass, field
+import uuid
 from datetime import datetime
-from uuid import UUID, uuid4
+from sqlalchemy import DateTime, Float, ForeignKey, String
+from sqlalchemy.orm import Mapped, mapped_column
+from src.database.connection import Base
+
+from sqlalchemy import DateTime, Float, String
+from sqlalchemy.dialects.postgresql import UUID as PGUUID
+from sqlalchemy.orm import Mapped, mapped_column
+
+from src.database.connection import Base
 
 
-@dataclass
-class Progreso:
-    """
-    Representa el progreso académico de un usuario dentro de un curso.
-    """
+class Progreso(Base):
+    __tablename__ = "progresos"
 
-    id_progreso: UUID = field(default_factory=uuid4)
-    porcentaje: float = 0.0
-    estado: str = "En progreso"
-    ultima_actualizacion: datetime = field(default_factory=datetime.now)
-    id_usuario: UUID | None = None
-    id_curso: UUID | None = None
-    id_leccion: UUID | None = None
+    id_progreso: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    porcentaje: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    estado: Mapped[str] = mapped_column(
+        String(30), default="En progreso", nullable=False
+    )
+    ultima_actualizacion: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.now, onupdate=datetime.now, nullable=False
+    )
+    id_usuario: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True), nullable=True)
+    id_curso: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True), nullable=True)
+    id_leccion: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True), nullable=True)

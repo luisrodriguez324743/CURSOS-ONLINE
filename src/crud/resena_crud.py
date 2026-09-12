@@ -50,6 +50,35 @@ class ResenaCRUD:
         finally:
             session.close()
 
+    def obtener_por_usuario_curso(
+        self, id_usuario: UUID, id_curso: UUID
+    ) -> Resena | None:
+        session = get_session()
+        try:
+            return (
+                session.query(Resena)
+                .filter_by(id_usuario=id_usuario, id_curso=id_curso)
+                .first()
+            )
+        finally:
+            session.close()
+
+    def actualizar(
+        self, identificador: UUID, calificacion: int, comentario: str | None
+    ) -> Resena | None:
+        session = get_session()
+        try:
+            resena = session.get(Resena, identificador)
+            if resena is None:
+                return None
+            resena.calificacion = calificacion
+            resena.comentario = comentario
+            session.commit()
+            session.refresh(resena)
+            return resena
+        finally:
+            session.close()
+
     def promedio_calificacion_curso(self, id_curso: UUID) -> float:
         """Calcula el promedio de calificación usando funciones agregadas de la base de datos."""
         session = get_session()
