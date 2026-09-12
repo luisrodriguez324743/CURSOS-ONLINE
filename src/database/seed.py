@@ -160,19 +160,26 @@ def _seed_resena(session, student_id: UUID) -> None:
     )
 
 
-def _seed_factura_pago_certificado(session, student_id: UUID) -> None:
-    _add_if_missing(
+def _seed_factura_pago_certificado(
+    session, student_id: UUID, inscription_id: UUID
+) -> None:
+    factura = _add_if_missing(
         session,
         Factura,
         FACTURA_ID,
         id_factura=FACTURA_ID,
         numero_factura="FAC-DEMO-001",
         total=25.0,
+        id_inscripcion=inscription_id,
         id_usuario=student_id,
         id_curso=CURSO_ID,
         metodo_pago="tarjeta",
         estado="pagada",
     )
+    if factura.id_inscripcion is None:
+        factura.id_inscripcion = inscription_id
+        session.flush()
+
     _add_if_missing(
         session,
         Pago,
@@ -196,8 +203,8 @@ def _seed_factura_pago_certificado(session, student_id: UUID) -> None:
     )
 
 
-def _seed_academico(session, instructor_id: UUID, student_id: UUID) -> None:
-    _add_if_missing(
+def _seed_academico(session, instructor_id: UUID, student_id: UUID) -> UUID:
+    inscripcion = _add_if_missing(
         session,
         Inscripcion,
         INSCRIPCION_ID,
@@ -250,6 +257,7 @@ def _seed_academico(session, instructor_id: UUID, student_id: UUID) -> None:
         id_leccion=LECCION_ID,
         id_usuario=student_id,
     )
+    return inscripcion.id_inscripcion
 
 
 def _seed_evaluacion_por_curso(session) -> None:
@@ -294,8 +302,8 @@ def seed() -> None:
         )
         _seed_curso_y_contenido(session, instructor_id)
         _seed_resena(session, student_id)
-        _seed_factura_pago_certificado(session, student_id)
-        _seed_academico(session, instructor_id, student_id)
+        inscription_id = _seed_academico(session, instructor_id, student_id)
+        _seed_factura_pago_certificado(session, student_id, inscription_id)
         _seed_evaluacion_por_curso(session)
         session.commit()
         print("Datos semilla cargados correctamente.")
