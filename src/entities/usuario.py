@@ -1,8 +1,14 @@
 import uuid
 from datetime import datetime, date
+from typing import TYPE_CHECKING
+
 from sqlalchemy import String, Text, Integer, Boolean, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from src.database.connection import Base
+
+if TYPE_CHECKING:
+    from .resena import Resena
+    from .rol import Rol
 
 
 class Usuario(Base):
@@ -10,9 +16,13 @@ class Usuario(Base):
 
     id_usuario: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     primer_nombre: Mapped[str] = mapped_column(String(80))
-    segundo_nombre: Mapped[str | None] = mapped_column(String(80), default="", nullable=True)
+    segundo_nombre: Mapped[str | None] = mapped_column(
+        String(80), default="", nullable=True
+    )
     primer_apellido: Mapped[str] = mapped_column(String(80))
-    segundo_apellido: Mapped[str | None] = mapped_column(String(80), default="", nullable=True)
+    segundo_apellido: Mapped[str | None] = mapped_column(
+        String(80), default="", nullable=True
+    )
     nombre_usuario: Mapped[str] = mapped_column(String(80), unique=True)
     correo: Mapped[str] = mapped_column(String(120), unique=True)
     clave: Mapped[str] = mapped_column(String(255))
@@ -31,4 +41,3 @@ class Usuario(Base):
     # Relaciones ORM
     rol: Mapped["Rol | None"] = relationship(back_populates="usuarios")
     resenas: Mapped[list["Resena"]] = relationship(back_populates="usuario")
-

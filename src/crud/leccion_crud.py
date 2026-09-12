@@ -7,6 +7,42 @@ from src.entities.modulo import Modulo
 
 
 class LeccionCRUD:
+    @staticmethod
+    def _leer_opcion(mensaje: str) -> str:
+        return input(mensaje).strip()
+
+    def crear_leccion_instructor(self, usuario, datos: dict[str, object]) -> None:
+        cursos = datos["modulos"].cursos_del_instructor(usuario, datos)
+        modulos = [
+            modulo
+            for modulo in datos["modulos"].listar()
+            if any(curso.id_curso == modulo.id_curso for curso in cursos)
+        ]
+        if not modulos:
+            print("No tienes módulos para crear lecciones.")
+            return
+
+        print("\nTus módulos:")
+        for indice, modulo in enumerate(modulos, start=1):
+            print(f"{indice}. {modulo.nombre}")
+
+        try:
+            modulo = modulos[int(self._leer_opcion("Selecciona el módulo: ")) - 1]
+            orden = int(self._leer_opcion("Orden de la lección: "))
+            duracion = int(self._leer_opcion("Duración en minutos: "))
+        except (ValueError, IndexError):
+            print("Selección, orden o duración inválidos.")
+            return
+
+        leccion = self.crear_para_modulo(
+            modulo,
+            self._leer_opcion("Nombre de la lección: "),
+            self._leer_opcion("Contenido de la lección: "),
+            orden,
+            duracion,
+        )
+        print(f"Lección creada correctamente: {leccion.nombre}")
+
     def crear(self, registro: Leccion) -> Leccion:
         session = get_session()
         try:
