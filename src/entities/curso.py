@@ -8,6 +8,7 @@ from src.database.connection import Base
 
 if TYPE_CHECKING:
     from .modulo import Modulo
+    from .usuario import Usuario
 
 
 class Curso(Base):
@@ -19,6 +20,9 @@ class Curso(Base):
     precio: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     id_profesor: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("usuario.id_usuario"), nullable=True
+    )
+    profesor: Mapped["Usuario | None"] = relationship(
+        "Usuario", foreign_keys=[id_profesor]
     )
     modulos: Mapped[list["Modulo"]] = relationship(
         back_populates="curso", cascade="all, delete-orphan"

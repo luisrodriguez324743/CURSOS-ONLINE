@@ -19,6 +19,34 @@ class ModuloCRUD:
         ]
 
     def crear_curso_instructor(self, usuario, datos: dict[str, object]) -> None:
+        roles_profesor = {
+            rol.id_rol
+            for rol in datos["roles"].listar()
+            if rol.nombre_rol.strip().casefold() == "profesor"
+        }
+        profesores = [
+            profesor
+            for profesor in datos["usuarios"].listar()
+            if profesor.id_rol in roles_profesor
+        ]
+        profesores.sort(key=lambda profesor: profesor.nombre_usuario.casefold())
+
+        if not profesores:
+            print("No hay profesores disponibles para asociar el curso.")
+            return
+
+        print("\nSelecciona el profesor del curso:")
+        for indice, profesor in enumerate(profesores, start=1):
+            print(
+                f"{indice}. {profesor.nombre_usuario} - "
+                f"{profesor.primer_nombre} {profesor.primer_apellido}"
+            )
+        try:
+            profesor = profesores[int(self._leer_opcion("Profesor: ")) - 1]
+        except (ValueError, IndexError):
+            print("Selección de profesor inválida.")
+            return
+
         try:
             precio = float(self._leer_opcion("Precio del curso: "))
             if precio < 0:
@@ -32,19 +60,28 @@ class ModuloCRUD:
             nombre=self._leer_opcion("Nombre del curso: "),
             descripcion=self._leer_opcion("Descripción del curso: "),
             precio=precio,
-            id_profesor=usuario.id_usuario,
+            id_profesor=profesor.id_usuario,
         )
-        print(f"Curso creado correctamente: {curso.nombre}")
+        print(
+            f"Curso creado correctamente: {curso.nombre}. "
+            f"Profesor asignado: {profesor.nombre_usuario}"
+        )
 
     def crear_modulo_instructor(self, usuario, datos: dict[str, object]) -> None:
-        cursos = self.cursos_del_instructor(usuario, datos)
+        cursos = datos["cursos"].listar()
         if not cursos:
-            print("No tienes cursos asignados para crear módulos.")
+            print("No hay cursos disponibles para crear módulos.")
             return
 
-        print("\nTus cursos:")
+        print("\nCursos disponibles:")
         for indice, curso in enumerate(cursos, start=1):
-            print(f"{indice}. {curso.nombre}")
+            profesor = (
+                datos["usuarios"].obtener_por_id(curso.id_profesor)
+                if curso.id_profesor
+                else None
+            )
+            nombre_profesor = profesor.nombre_usuario if profesor else "Sin profesor"
+            print(f"{indice}. {curso.nombre} | Profesor: {nombre_profesor}")
 
         try:
             curso = cursos[int(self._leer_opcion("Selecciona el curso: ")) - 1]
@@ -59,7 +96,10 @@ class ModuloCRUD:
             self._leer_opcion("Descripción del módulo: "),
             orden,
         )
-        print(f"Módulo creado correctamente: {modulo.nombre}")
+        print(
+            f"Módulo creado correctamente: {modulo.nombre} "
+            f"en el curso '{curso.nombre}'."
+        )
 
     def crear(self, registro: Modulo) -> Modulo:
         session = get_session()

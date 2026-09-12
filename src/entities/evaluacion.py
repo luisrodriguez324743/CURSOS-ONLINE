@@ -1,17 +1,24 @@
-from dataclasses import dataclass, field
 from uuid import UUID, uuid4
 
+from sqlalchemy import Float, ForeignKey, String, Text
+from sqlalchemy.dialects.postgresql import UUID as PGUUID
+from sqlalchemy.orm import Mapped, mapped_column
 
-@dataclass
-class Evaluacion:
-    """
-    Representa una evaluación realizada por un usuario
-    dentro de una lección de un curso.
-    """
+from src.database.connection import Base
 
-    id_evaluacion: UUID = field(default_factory=uuid4)
-    nombre: str = ""
-    descripcion: str = ""
-    calificacion: float = 0.0
-    id_leccion: UUID | None = None
-    id_usuario: UUID | None = None
+
+class Evaluacion(Base):
+    __tablename__ = "evaluaciones"
+
+    id_evaluacion: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    nombre: Mapped[str] = mapped_column(String(150), default="", nullable=False)
+    descripcion: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    calificacion: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    id_leccion: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("leccion.id_leccion"), nullable=True
+    )
+    id_usuario: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("usuario.id_usuario"), nullable=True
+    )
