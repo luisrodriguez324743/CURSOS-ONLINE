@@ -92,3 +92,7 @@ def seed() -> None:
         print("Error al insertar los datos semilla.")
     finally:
         session.close()
+
+
+if __name__ == "__main__":
+    seed()
