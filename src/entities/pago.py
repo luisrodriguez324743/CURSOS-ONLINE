@@ -9,7 +9,7 @@ from src.database.connection import Base
 
 
 class Pago(Base):
-    __tablename__ = "pagos"
+    __tablename__ = "pago"
 
     id_pago: Mapped[UUID] = mapped_column(
         PGUUID(as_uuid=True), primary_key=True, default=uuid4
