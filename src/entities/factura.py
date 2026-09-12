@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, Float, String
+from sqlalchemy import DateTime, Float, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -19,9 +19,15 @@ class Factura(Base):
         DateTime, default=datetime.now, nullable=False
     )
     total: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
-    id_inscripcion: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), nullable=True)
-    id_usuario: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), nullable=True)
-    id_curso: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), nullable=True)
+    id_inscripcion: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("inscripciones.id_inscripcion"), nullable=True
+    )
+    id_usuario: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("usuario.id_usuario"), nullable=True
+    )
+    id_curso: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("curso.id_curso"), nullable=True
+    )
     detalle_cursos: Mapped[str] = mapped_column(String, nullable=True, default="[]")
     metodo_pago: Mapped[str] = mapped_column(String(50), default="efectivo")
     estado: Mapped[str] = mapped_column(String(20), default="emitida")
