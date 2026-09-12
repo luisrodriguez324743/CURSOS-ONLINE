@@ -7,6 +7,60 @@ from src.entities.modulo import Modulo
 
 
 class ModuloCRUD:
+    @staticmethod
+    def _leer_opcion(mensaje: str) -> str:
+        return input(mensaje).strip()
+
+    def cursos_del_instructor(self, usuario, datos: dict[str, object]) -> list[Curso]:
+        return [
+            curso
+            for curso in datos["cursos"].listar()
+            if curso.id_profesor == usuario.id_usuario
+        ]
+
+    def crear_curso_instructor(self, usuario, datos: dict[str, object]) -> None:
+        try:
+            precio = float(self._leer_opcion("Precio del curso: "))
+            if precio < 0:
+                print("El precio no puede ser negativo.")
+                return
+        except ValueError:
+            print("El precio debe ser un número válido.")
+            return
+
+        curso = datos["cursos"].crear_curso(
+            nombre=self._leer_opcion("Nombre del curso: "),
+            descripcion=self._leer_opcion("Descripción del curso: "),
+            precio=precio,
+            id_profesor=usuario.id_usuario,
+        )
+        print(f"Curso creado correctamente: {curso.nombre}")
+
+    def crear_modulo_instructor(self, usuario, datos: dict[str, object]) -> None:
+        cursos = self.cursos_del_instructor(usuario, datos)
+        if not cursos:
+            print("No tienes cursos asignados para crear módulos.")
+            return
+
+        print("\nTus cursos:")
+        for indice, curso in enumerate(cursos, start=1):
+            print(f"{indice}. {curso.nombre}")
+
+        try:
+            curso = cursos[int(self._leer_opcion("Selecciona el curso: ")) - 1]
+            orden = int(self._leer_opcion("Orden del módulo: "))
+        except (ValueError, IndexError):
+            print("Selección u orden inválido.")
+            return
+
+        modulo = self.crear_para_curso(
+            curso,
+            self._leer_opcion("Nombre del módulo: "),
+            self._leer_opcion("Descripción del módulo: "),
+            orden,
+        )
+        print(f"Módulo creado correctamente: {modulo.nombre}")
+
     def crear(self, registro: Modulo) -> Modulo:
         session = get_session()
         try:

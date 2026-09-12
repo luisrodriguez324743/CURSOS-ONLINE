@@ -4,8 +4,8 @@ from uuid import UUID
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 
-from database.connection import get_session
-from entities.factura import Factura
+from src.database.connection import get_session
+from src.entities.factura import Factura
 
 
 class FacturaCRUD:
@@ -42,7 +42,9 @@ class FacturaCRUD:
         finally:
             session.close()
 
-    def actualizar(self, identificador: UUID, cambios: dict[str, Any]) -> Factura | None:
+    def actualizar(
+        self, identificador: UUID, cambios: dict[str, Any]
+    ) -> Factura | None:
         session = get_session()
         try:
             registro = session.get(Factura, identificador)
@@ -72,6 +74,10 @@ class FacturaCRUD:
     def listar(self) -> list[Factura]:
         session = get_session()
         try:
-            return session.query(Factura).order_by(func.lower(Factura.numero_factura)).all()
+            return (
+                session.query(Factura)
+                .order_by(func.lower(Factura.numero_factura))
+                .all()
+            )
         finally:
             session.close()
