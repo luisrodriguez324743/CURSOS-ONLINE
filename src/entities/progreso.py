@@ -4,13 +4,26 @@ from sqlalchemy import DateTime, Float, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 from src.database.connection import Base
 
-class Progreso(Base):
-    __tablename__ = "progreso"
+from sqlalchemy import DateTime, Float, String
+from sqlalchemy.dialects.postgresql import UUID as PGUUID
+from sqlalchemy.orm import Mapped, mapped_column
 
-    id_progreso: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+from src.database.connection import Base
+
+
+class Progreso(Base):
+    __tablename__ = "progresos"
+
+    id_progreso: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), primary_key=True, default=uuid4
+    )
     porcentaje: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
-    estado: Mapped[str] = mapped_column(String(50), default="En progreso", nullable=False)
-    ultima_actualizacion: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=False)
-    id_usuario: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("usuario.id_usuario"), nullable=True)
-    id_curso: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("curso.id_curso"), nullable=True)
-    id_leccion: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("leccion.id_leccion"), nullable=True)
+    estado: Mapped[str] = mapped_column(
+        String(30), default="En progreso", nullable=False
+    )
+    ultima_actualizacion: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.now, onupdate=datetime.now, nullable=False
+    )
+    id_usuario: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True), nullable=True)
+    id_curso: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True), nullable=True)
+    id_leccion: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True), nullable=True)

@@ -1,5 +1,5 @@
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
@@ -37,7 +37,9 @@ class CertificadoCRUD:
             (
                 registro
                 for registro in progresos
-                if registro.id_usuario == id_usuario and registro.id_curso == id_curso
+                if registro.id_usuario == id_usuario
+                and registro.id_curso == id_curso
+                and registro.id_leccion is None
             ),
             None,
         )
@@ -65,12 +67,14 @@ class CertificadoCRUD:
         progresos: list,
         id_usuario: UUID,
         id_curso: UUID,
+        mostrar_mensaje: bool = True,
     ) -> Certificado | None:
         ok, mensaje = cls.puede_emitirse(
             pagos, facturas, progresos, id_usuario, id_curso
         )
-        if not ok:
+        if not ok and mostrar_mensaje:
             print(mensaje)
+        if not ok:
             return None
         return Certificado(id_usuario=id_usuario, id_curso=id_curso)
 
@@ -84,6 +88,8 @@ class CertificadoCRUD:
     def crear(self, registro: Certificado) -> Certificado:
         if registro is None:
             raise ValueError("El certificado no puede ser nulo.")
+        if registro.id_certificado is None:
+            registro.id_certificado = uuid4()
         if not registro.codigo:
             registro.codigo = f"CERT-{registro.id_certificado.hex[:8].upper()}"
 
@@ -96,6 +102,19 @@ class CertificadoCRUD:
         except IntegrityError as exc:
             session.rollback()
             raise ValueError("No se pudo crear el certificado.") from exc
+        finally:
+            session.close()
+
+    def obtener_por_usuario_curso(
+        self, id_usuario: UUID, id_curso: UUID
+    ) -> Certificado | None:
+        session = get_session()
+        try:
+            return (
+                session.query(Certificado)
+                .filter_by(id_usuario=id_usuario, id_curso=id_curso)
+                .first()
+            )
         finally:
             session.close()
 
