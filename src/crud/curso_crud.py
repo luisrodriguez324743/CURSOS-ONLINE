@@ -33,24 +33,6 @@ class CursoCRUD:
             )
         )
 
-    def crear_cursos_iniciales(self) -> None:
-        cursos_iniciales = (
-            ("Python desde cero", "Fundamentos del lenguaje Python", 25.0),
-            ("Bases de datos", "Modelado y consultas SQL", 30.0),
-            (
-                "Desarrollo web",
-                "Creación de sitios web con HTML, CSS y JavaScript",
-                35.0,
-            ),
-            (
-                "Diseño de interfaces",
-                "Principios de diseño UX y creación de prototipos",
-                28.0,
-            ),
-        )
-        for nombre, descripcion, precio in cursos_iniciales:
-            self.crear_curso(nombre, descripcion, precio)
-
     def mostrar_cursos(self) -> None:
         registros = self.listar()
         if not registros:
@@ -134,6 +116,7 @@ class CursoCRUD:
                     for registro in datos["progresos"].listar()
                     if registro.id_usuario == usuario.id_usuario
                     and registro.id_curso == inscripcion.id_curso
+                    and registro.id_leccion is None
                 ),
                 None,
             )
