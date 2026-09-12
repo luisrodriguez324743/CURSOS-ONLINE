@@ -10,13 +10,10 @@ from src.entities.modulo import Modulo
 from src.entities.curso import Curso
 from .base_crud import CRUD
 
-
 class EvaluacionCRUD(CRUD[Evaluacion]):
     """
-    CRUD encargado de gestionar las evaluaciones
-    realizadas por los usuarios.
+    CRUD encargado de gestionar las evaluaciones realizadas por los usuarios.
     """
-
     def __init__(self) -> None:
         super().__init__(Evaluacion)
 
@@ -42,7 +39,6 @@ class EvaluacionCRUD(CRUD[Evaluacion]):
             session.close()
 
     def listar(self) -> list[Evaluacion]:
-        """Obtiene todas las evaluaciones registradas."""
         return super().listar()
 
     def listar_por_curso(self, id_curso: UUID) -> list[Evaluacion]:
@@ -60,7 +56,6 @@ class EvaluacionCRUD(CRUD[Evaluacion]):
             session.close()
 
     def obtener(self, identificador: UUID) -> Evaluacion | None:
-        """Obtiene una evaluación mediante su identificador."""
         return super().obtener(identificador)
 
     def actualizar(
