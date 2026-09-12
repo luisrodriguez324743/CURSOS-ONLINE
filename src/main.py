@@ -1,4 +1,8 @@
+import sys
+from pathlib import Path
 from uuid import UUID
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src.crud.certificado_crud import CertificadoCRUD
 from src.crud.curso_crud import CursoCRUD
@@ -26,15 +30,15 @@ from src.entities.usuario import Usuario
 # USUARIO, ROL, RESENA
 def inicializar_crud() -> dict[str, object]:
     roles = RolCRUD()
-    rol_estudiante = roles.crear(
-        Rol(nombre="Estudiante", descripcion="Usuario que toma cursos")
+    rol_estudiante = roles.buscar_por_nombre("Estudiante") or roles.crear(
+        "Estudiante", "Usuario que toma cursos"
     )
-    rol_profesor = roles.crear(
-        Rol(nombre="Profesor", descripcion="Usuario que publica cursos")
+    rol_profesor = roles.buscar_por_nombre("Profesor") or roles.crear(
+        "Profesor", "Usuario que publica cursos"
     )
 
     cursos = CursoCRUD()
-    Curso.crear_cursos_iniciales(cursos)
+    cursos.crear_cursos_iniciales()
 
     return {
         # USUARIO; ROL, RESENA
@@ -60,24 +64,72 @@ def leer_opcion(mensaje: str) -> str:
     return input(mensaje).strip()
 
 
+def nombre_completo(usuario: Usuario) -> str:
+    nombres = " ".join(
+        parte for parte in (usuario.primer_nombre, usuario.segundo_nombre) if parte
+    )
+    apellidos = " ".join(
+        parte for parte in (usuario.primer_apellido, usuario.segundo_apellido) if parte
+    )
+    return f"{nombres} {apellidos}".strip()
+
+
 def iniciar_sesion(datos: dict[str, object]) -> Usuario | None:
+    roles: RolCRUD = datos["roles"]
+    roles_disponibles = sorted(roles.listar(), key=lambda rol: rol.nombre_rol.lower())
+
+    if not roles_disponibles:
+        print("No hay roles disponibles para iniciar sesión.")
+        return None
+
+    print("\nRoles disponibles:")
+    for indice, rol in enumerate(roles_disponibles, start=1):
+        print(f"{indice}. {rol.nombre_rol}")
+
+    try:
+        indice_rol = int(leer_opcion("Selecciona tu rol: ")) - 1
+        rol_seleccionado = roles_disponibles[indice_rol]
+    except (ValueError, IndexError):
+        print("Selección de rol inválida.")
+        return None
+
     nombre_usuario = leer_opcion("Nombre de usuario: ")
     password = leer_opcion("Contraseña: ")
 
     usuario = datos["usuarios"].autenticar(nombre_usuario, password)
 
-    if usuario is None:
+    if usuario is None or usuario.id_rol != rol_seleccionado.id_rol:
         print("Credenciales incorrectas.")
         return None
 
-    # Usamos nombre_usuario o nombre según los atributos de tu entidad Usuario
-    print(f"Bienvenido, {usuario.nombre_usuario}.")
+    print(f"Bienvenido, {usuario.nombre_usuario}. Rol: {rol_seleccionado.nombre_rol}")
     return usuario
 
 
 def registrar_usuario(datos: dict[str, object]) -> None:
     usuarios: UsuarioCRUD = datos["usuarios"]
-    rol_estudiante: Rol = datos["rol_estudiante"]
+    roles: RolCRUD = datos["roles"]
+    nombres_roles = ("Instructor", "Administrador", "Estudiante", "Profesor")
+    roles_por_nombre = {rol.nombre_rol.casefold(): rol for rol in roles.listar()}
+    roles_disponibles = [
+        roles_por_nombre[nombre.casefold()]
+        for nombre in nombres_roles
+        if nombre.casefold() in roles_por_nombre
+    ]
+
+    if not roles_disponibles:
+        print("No hay roles disponibles para registrar el usuario.")
+        return
+
+    print("\nSelecciona el rol del usuario:")
+    for indice, rol in enumerate(roles_disponibles, start=1):
+        print(f"{indice}. {rol.nombre_rol}")
+
+    try:
+        rol_seleccionado = roles_disponibles[int(leer_opcion("Rol: ")) - 1]
+    except (ValueError, IndexError):
+        print("Selección de rol inválida.")
+        return
 
     nombre_usuario = leer_opcion("Nombre de usuario: ")
 
@@ -85,16 +137,18 @@ def registrar_usuario(datos: dict[str, object]) -> None:
         print("Ese nombre de usuario ya existe.")
         return
 
-    usuario = Usuario(
-        nombre=leer_opcion("Nombre completo: "),
+    usuario = usuarios.crear(
+        primer_nombre=leer_opcion("Primer nombre: "),
+        primer_apellido=leer_opcion("Primer apellido: "),
         nombre_usuario=nombre_usuario,
         correo=leer_opcion("Correo electrónico: "),
-        password=leer_opcion("Contraseña: "),
-        area=leer_opcion("Área (ej. Sistemas, Educación): "),
-        id_rol=rol_estudiante.id_rol,
+        clave=leer_opcion("Contraseña: "),
+        id_rol=rol_seleccionado.id_rol,
     )
 
-    usuarios.crear(usuario)
+    if usuario is None:
+        print("No se pudo crear el usuario: el nombre o correo ya existe.")
+        return
     print(f"Usuario creado correctamente. Tu ID es: {usuario.id_usuario}")
 
 
@@ -105,7 +159,7 @@ def procesar_compra_curso(usuario: Usuario, datos: dict[str, object]) -> None:
     inscripciones = datos["inscripciones"]
     progresos = datos["progresos"]
 
-    Curso.mostrar_cursos(cursos)
+    cursos.mostrar_cursos()
     disponibles = cursos.listar()
     if not disponibles:
         return
@@ -185,7 +239,7 @@ def procesar_compra_curso(usuario: Usuario, datos: dict[str, object]) -> None:
         )
     )
 
-    print(factura.generar_comprobante(curso.nombre, usuario.nombre))
+    print(factura.generar_comprobante(curso.nombre, nombre_completo(usuario)))
     print(f"ID de inscripción: {inscripcion.id_inscripcion}")
     print(f"Estado del pago: {pago.estado}")
     print("Compra realizada con éxito.")
@@ -261,7 +315,7 @@ def emitir_certificado_curso(
     print("CERTIFICADO EMITIDO")
     print("============================")
     print(f"Curso: {curso.nombre}")
-    print(f"Estudiante: {usuario.nombre}")
+    print(f"Estudiante: {nombre_completo(usuario)}")
     print(f"Código: {certificado.codigo}")
     print(f"Fecha: {certificado.fecha_emision.strftime('%d/%m/%Y')}")
     print("Se declara que el curso fue culminado satisfactoriamente.")
@@ -344,13 +398,40 @@ def completar_curso(usuario: Usuario, datos: dict[str, object]) -> None:
             print("CERTIFICADO EMITIDO")
             print("============================")
             print(f"Curso: {datos['cursos'].obtener(inscripcion.id_curso).nombre}")
-            print(f"Estudiante: {usuario.nombre}")
+            print(f"Estudiante: {nombre_completo(usuario)}")
             print(f"Código: {certificado.codigo}")
             print(f"Fecha: {certificado.fecha_emision.strftime('%d/%m/%Y')}")
             print("Se declara que el curso fue culminado satisfactoriamente.")
             print("============================")
         else:
             print("Puedes revisarlo después desde la opción 'Ver certificados'.")
+
+
+def menu_instructor(usuario: Usuario, datos: dict[str, object]) -> None:
+    while True:
+        print(f"\n--- MENÚ DE INSTRUCTOR ({usuario.nombre_usuario}) ---")
+        print("1. Ver mi perfil")
+        print("2. Crear curso")
+        print("3. Crear módulo")
+        print("4. Crear lección")
+        print("5. Cerrar sesión")
+        opcion = leer_opcion("Opción: ")
+
+        if opcion == "1":
+            print(f"\nNombre: {nombre_completo(usuario)}")
+            print(f"Email: {usuario.correo}")
+            print(f"ID Rol: {usuario.id_rol}")
+        elif opcion == "2":
+            datos["modulos"].crear_curso_instructor(usuario, datos)
+        elif opcion == "3":
+            datos["modulos"].crear_modulo_instructor(usuario, datos)
+        elif opcion == "4":
+            datos["lecciones"].crear_leccion_instructor(usuario, datos)
+        elif opcion == "5":
+            print("Sesión cerrada.")
+            return
+        else:
+            print("Opción inválida.")
 
 
 def menu_usuario(usuario: Usuario, datos: dict[str, object]) -> None:
@@ -368,15 +449,15 @@ def menu_usuario(usuario: Usuario, datos: dict[str, object]) -> None:
         opcion = leer_opcion("Opción: ")
 
         if opcion == "1":
-            print(f"\nNombre: {usuario.nombre}")
+            print(f"\nNombre: {nombre_completo(usuario)}")
             print(f"Email: {usuario.correo}")
             print(f"ID Rol: {usuario.id_rol}")
         elif opcion == "2":
-            Curso.mostrar_cursos(datos["cursos"])
+            datos["cursos"].mostrar_cursos()
         elif opcion == "3":
             procesar_compra_curso(usuario, datos)
         elif opcion == "4":
-            Curso.mostrar_mis_cursos(datos["cursos"], usuario, datos)
+            datos["cursos"].mostrar_mis_cursos(usuario, datos)
         elif opcion == "5":
             mostrar_historial_pagos(usuario, datos)
         elif opcion == "6":
@@ -404,7 +485,11 @@ def main() -> None:
         if opcion == "1":
             usuario = iniciar_sesion(datos)
             if usuario is not None:
-                menu_usuario(usuario, datos)
+                rol = datos["roles"].obtener_por_id(usuario.id_rol)
+                if rol is not None and rol.nombre_rol.casefold() == "instructor":
+                    menu_instructor(usuario, datos)
+                else:
+                    menu_usuario(usuario, datos)
         elif opcion == "2":
             registrar_usuario(datos)
         elif opcion == "3":
