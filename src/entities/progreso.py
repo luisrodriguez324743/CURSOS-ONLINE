@@ -9,7 +9,7 @@ from src.database.connection import Base
 
 
 class Progreso(Base):
-    __tablename__ = "progresos"
+    __tablename__ = "progreso"
 
     id_progreso: Mapped[UUID] = mapped_column(
         PGUUID(as_uuid=True), primary_key=True, default=uuid4
