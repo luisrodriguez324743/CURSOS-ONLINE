@@ -9,7 +9,7 @@ from src.database.connection import Base
 
 
 class Factura(Base):
-    __tablename__ = "facturas"
+    __tablename__ = "factura"
 
     id_factura: Mapped[UUID] = mapped_column(
         PGUUID(as_uuid=True), primary_key=True, default=uuid4

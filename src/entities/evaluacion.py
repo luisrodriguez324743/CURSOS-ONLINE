@@ -8,7 +8,7 @@ from src.database.connection import Base
 
 
 class Evaluacion(Base):
-    __tablename__ = "evaluaciones"
+    __tablename__ = "evaluacione"
 
     id_evaluacion: Mapped[UUID] = mapped_column(
         PGUUID(as_uuid=True), primary_key=True, default=uuid4
