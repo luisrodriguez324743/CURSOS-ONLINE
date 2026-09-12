@@ -4,8 +4,8 @@ from uuid import UUID
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 
-from database.connection import get_session
-from entities.certificado import Certificado
+from src.database.connection import get_session
+from src.entities.certificado import Certificado
 
 
 class CertificadoCRUD:
@@ -42,7 +42,9 @@ class CertificadoCRUD:
         finally:
             session.close()
 
-    def actualizar(self, identificador: UUID, cambios: dict[str, Any]) -> Certificado | None:
+    def actualizar(
+        self, identificador: UUID, cambios: dict[str, Any]
+    ) -> Certificado | None:
         session = get_session()
         try:
             registro = session.get(Certificado, identificador)
@@ -72,6 +74,10 @@ class CertificadoCRUD:
     def listar(self) -> list[Certificado]:
         session = get_session()
         try:
-            return session.query(Certificado).order_by(func.lower(Certificado.codigo)).all()
+            return (
+                session.query(Certificado)
+                .order_by(func.lower(Certificado.codigo))
+                .all()
+            )
         finally:
             session.close()

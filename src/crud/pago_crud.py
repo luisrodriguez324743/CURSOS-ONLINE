@@ -4,8 +4,8 @@ from uuid import UUID
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 
-from database.connection import get_session
-from entities.pago import Pago
+from src.database.connection import get_session
+from src.entities.pago import Pago
 
 
 class PagoCRUD:
