@@ -13,3 +13,4 @@ python -m src.database.seed
 El seeder es idempotente: puede ejecutarse varias veces sin duplicar sus
 registros. Carga roles, usuarios, cursos, módulos, lecciones, reseñas,
 facturas, pagos, certificados, inscripciones, progresos y evaluaciones.
+[Ver presentación en video del proyecto](https://drive.google.com/drive/folders/1ZEeYPr1taLtDN9tkX0QebVh41MyrmcdM?usp=drive_link)
