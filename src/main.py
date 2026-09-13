@@ -15,7 +15,7 @@ from src.crud.progreso_crud import ProgresoCRUD
 from src.crud.resena_crud import ResenaCRUD
 from src.crud.rol_crud import RolCRUD
 from src.crud.usuario_crud import UsuarioCRUD
-from src.database.init_db import init_db
+
 from src.entities.evaluacion import Evaluacion
 from src.entities.factura import Factura
 from src.entities.inscripcion import Inscripcion
@@ -572,7 +572,6 @@ def crear_evaluacion_profesor(usuario: Usuario, datos: dict[str, object]) -> Non
 # ==========================================
 
 def inicializar_crud() -> dict[str, object]:
-    init_db()  # Ejecuta create_all() importado de init_db.py
     roles = RolCRUD()
     rol_estudiante = roles.buscar_por_nombre("Estudiante") or roles.crear(
         "Estudiante", "Usuario que toma cursos"
