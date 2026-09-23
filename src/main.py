@@ -1,7 +1,10 @@
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from src.api.usuarios import usuarios_router
+from src.api.roles import roles_router
+from src.api.resenas import resenas_router
 
 app = FastAPI(
     title="CURSO-ONLINE",
@@ -16,8 +19,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Incluir las rutas de usuarios
-app.include_router(usuarios_router, prefix="/usuarios", tags=["Usuarios"])
+# Registrar routers
+app.include_router(usuarios_router)
+app.include_router(roles_router)
+app.include_router(resenas_router)
 
 
 @app.get("/")
