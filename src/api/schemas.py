@@ -14,7 +14,7 @@ class UsuarioCreate(BaseModel):
     primer_apellido: str
     segundo_apellido: str = ""
     nombre_usuario: str
-    correo: EmailStr
+    correo: str
     clave: str
     area: str = ""
     id_rol: UUID | None = None
@@ -26,7 +26,7 @@ class UsuarioUpdate(BaseModel):
     primer_apellido: str | None = None
     segundo_apellido: str | None = None
     nombre_usuario: str | None = None
-    correo: EmailStr | None = None
+    correo: str | None = None
     clave: str | None = None
     area: str | None = None
     activo: bool | None = None
@@ -40,7 +40,7 @@ class UsuarioRead(BaseModel):
     primer_apellido: str
     segundo_apellido: str | None = ""
     nombre_usuario: str
-    correo: EmailStr
+    correo: str
     area: str | None = ""
     activo: bool
     id_rol: UUID | None = None
@@ -128,6 +128,11 @@ class ResenaRead(BaseModel):
     fecha_edicion: date | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+class ResenaList(BaseModel):
+    data: List[ResenaRead]
+    status: int
+    message: str
 
 
 class ResenaPost(BaseModel):
