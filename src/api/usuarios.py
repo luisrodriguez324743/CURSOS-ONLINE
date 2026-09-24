@@ -10,14 +10,15 @@ from src.api.schemas import (
     UsuarioLogin, 
     UsuarioRead, 
     UsuarioUpdate, 
+    UsuarioList,
     usuarioPost, 
     usuarioPut)
 
 usuarios_router = APIRouter(prefix="/usuarios", tags=["usuarios"])
 
 
-@usuarios_router.get("/", response_model=Dict[str, Any])
-def get_usuarios() -> Dict[str, Any]:
+@usuarios_router.get("/", response_model=UsuarioList)
+def get_usuarios() -> UsuarioList:
     usuarios = usuario_crud.listar()
     if not usuarios:
         raise HTTPException(

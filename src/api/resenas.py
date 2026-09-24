@@ -9,6 +9,7 @@ from src.api.schemas import (
     ResenaUpdate,
     ResenaRead,
     ResenaPost,
+    ResenaList,
     ResenaPut,
     PromedioResena,
 )
@@ -17,8 +18,8 @@ resenas_router = APIRouter(prefix="/resenas", tags=["resenas"])
 resena_crud = ResenaCRUD()
 
 
-@resenas_router.get("/", response_model=Dict[str, Any])
-def listar_resenas() -> Dict[str, Any]:
+@resenas_router.get("/", response_model=ResenaList)
+def listar_resenas() -> ResenaList:
     resenas = resena_crud.listar()
     if not resenas:
         raise HTTPException(
