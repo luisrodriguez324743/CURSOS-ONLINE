@@ -3,10 +3,10 @@ from uuid import UUID
 from datetime import date
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
-
 # ==========================================
 # ESQUEMAS DE USUARIO
 # ==========================================
+
 
 class UsuarioCreate(BaseModel):
     primer_nombre: str
@@ -77,6 +77,7 @@ class usuarioPut(BaseModel):
 # ESQUEMAS DE ROL
 # ==========================================
 
+
 class RolCreate(BaseModel):
     nombre_rol: str
     descripcion: str | None = None
@@ -106,6 +107,7 @@ class RolList(BaseModel):
 # ESQUEMAS DE RESEÑA
 # ==========================================
 
+
 class ResenaCreate(BaseModel):
     calificacion: int = Field(ge=1, le=5, description="Calificación de 1 a 5")
     id_usuario: UUID
@@ -128,6 +130,7 @@ class ResenaRead(BaseModel):
     fecha_edicion: date | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
 
 class ResenaList(BaseModel):
     data: List[ResenaRead]
@@ -156,3 +159,147 @@ class ResenaList(BaseModel):
 class PromedioResena(BaseModel):
     id_curso: UUID
     promedio: float
+
+
+# ==========================================
+# ESQUEMAS DE CURSO
+# ==========================================
+
+
+class CursoCreate(BaseModel):
+    nombre: str = Field(min_length=1, max_length=150)
+    descripcion: str = ""
+    precio: float = Field(default=0.0, ge=0)
+    id_profesor: UUID | None = None
+
+
+class CursoUpdate(BaseModel):
+    nombre: str | None = Field(default=None, min_length=1, max_length=150)
+    descripcion: str | None = None
+    precio: float | None = Field(default=None, ge=0)
+    id_profesor: UUID | None = None
+
+
+class CursoRead(BaseModel):
+    id_curso: UUID
+    nombre: str
+    descripcion: str
+    precio: float
+    id_profesor: UUID | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CursoList(BaseModel):
+    data: List[CursoRead]
+    status: int
+    message: str
+
+
+class CursoPost(BaseModel):
+    data: CursoRead
+    status: int
+    message: str
+
+
+class CursoPut(BaseModel):
+    data: CursoRead
+    status: int
+    message: str
+
+
+# ==========================================
+# ESQUEMAS DE MÓDULO
+# ==========================================
+
+
+class ModuloCreate(BaseModel):
+    nombre: str = Field(min_length=1, max_length=150)
+    descripcion: str = ""
+    orden: int = Field(default=0, ge=0)
+    id_curso: UUID
+
+
+class ModuloUpdate(BaseModel):
+    nombre: str | None = Field(default=None, min_length=1, max_length=150)
+    descripcion: str | None = None
+    orden: int | None = Field(default=None, ge=0)
+    id_curso: UUID | None = None
+
+
+class ModuloRead(BaseModel):
+    id_modulo: UUID
+    nombre: str
+    descripcion: str
+    orden: int
+    id_curso: UUID
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ModuloList(BaseModel):
+    data: List[ModuloRead]
+    status: int
+    message: str
+
+
+class ModuloPost(BaseModel):
+    data: ModuloRead
+    status: int
+    message: str
+
+
+class ModuloPut(BaseModel):
+    data: ModuloRead
+    status: int
+    message: str
+
+
+# ==========================================
+# ESQUEMAS DE LECCIÓN
+# ==========================================
+
+
+class LeccionCreate(BaseModel):
+    nombre: str = Field(min_length=1, max_length=150)
+    contenido: str = ""
+    orden: int = Field(default=0, ge=0)
+    id_modulo: UUID
+    duracion: int = Field(default=0, ge=0)
+
+
+class LeccionUpdate(BaseModel):
+    nombre: str | None = Field(default=None, min_length=1, max_length=150)
+    contenido: str | None = None
+    orden: int | None = Field(default=None, ge=0)
+    id_modulo: UUID | None = None
+    duracion: int | None = Field(default=None, ge=0)
+
+
+class LeccionRead(BaseModel):
+    id_leccion: UUID
+    nombre: str
+    contenido: str
+    orden: int
+    id_modulo: UUID
+    duracion: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class LeccionList(BaseModel):
+    data: List[LeccionRead]
+    status: int
+    message: str
+
+
+class LeccionPost(BaseModel):
+    data: LeccionRead
+    status: int
+    message: str
+
+
+class LeccionPut(BaseModel):
+    data: LeccionRead
+    status: int
+    message: str
