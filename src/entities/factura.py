@@ -20,7 +20,7 @@ class Factura(Base):
     )
     total: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     id_inscripcion: Mapped[UUID] = mapped_column(
-        PGUUID(as_uuid=True), ForeignKey("inscripciones.id_inscripcion"), nullable=True
+        PGUUID(as_uuid=True), ForeignKey("inscripcion.id_inscripcion"), nullable=True
     )
     id_usuario: Mapped[UUID] = mapped_column(
         PGUUID(as_uuid=True), ForeignKey("usuario.id_usuario"), nullable=True

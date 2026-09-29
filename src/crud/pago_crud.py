@@ -5,6 +5,9 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 
 from src.database.connection import get_session
+from src.crud.factura_crud import FacturaCRUD
+from src.entities.factura import Factura
+from src.entities.inscripcion import Inscripcion
 from src.entities.pago import Pago
 
 
@@ -74,6 +77,49 @@ class PagoCRUD:
         except IntegrityError as exc:
             session.rollback()
             raise ValueError("No se pudo crear el pago.") from exc
+        finally:
+            session.close()
+
+    def crear_con_factura(
+        self, pago: Pago, factura: Factura
+    ) -> tuple[Pago, Factura]:
+        if pago is None or factura is None:
+            raise ValueError("El pago y la factura son obligatorios.")
+        if pago.estado != "pagado":
+            raise ValueError("Solo los pagos confirmados generan factura.")
+        if pago.monto < 0:
+            raise ValueError("El monto del pago no puede ser negativo.")
+        if not pago.metodo_pago or not pago.metodo_pago.strip():
+            pago.metodo_pago = "efectivo"
+        if factura.total != pago.monto:
+            raise ValueError("El total de la factura debe coincidir con el pago.")
+        if not factura.numero_factura or not factura.numero_factura.strip():
+            factura.numero_factura = FacturaCRUD.generar_numero_factura()
+        FacturaCRUD.validar_estado(factura.estado)
+
+        session = get_session()
+        try:
+            inscripcion = (
+                session.query(Inscripcion)
+                .filter_by(id_usuario=pago.id_usuario, id_curso=pago.id_curso)
+                .first()
+            )
+            if inscripcion is None:
+                raise ValueError(
+                    "El usuario debe estar inscrito en este curso antes de realizar el pago."
+                )
+            factura.id_inscripcion = inscripcion.id_inscripcion
+            session.add(factura)
+            session.flush()
+            pago.id_factura = factura.id_factura
+            session.add(pago)
+            session.commit()
+            session.refresh(factura)
+            session.refresh(pago)
+            return pago, factura
+        except IntegrityError as exc:
+            session.rollback()
+            raise ValueError("No se pudo registrar el pago y su factura.") from exc
         finally:
             session.close()
 

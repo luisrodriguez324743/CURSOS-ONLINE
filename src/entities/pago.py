@@ -27,5 +27,5 @@ class Pago(Base):
         PGUUID(as_uuid=True), ForeignKey("curso.id_curso"), nullable=True
     )
     id_factura: Mapped[UUID] = mapped_column(
-        PGUUID(as_uuid=True), ForeignKey("facturas.id_factura"), nullable=True
+        PGUUID(as_uuid=True), ForeignKey("factura.id_factura"), nullable=True
     )

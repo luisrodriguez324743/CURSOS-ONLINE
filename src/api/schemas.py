@@ -1,6 +1,6 @@
-from typing import List, Any, Dict
+from typing import List, Any, Dict, Literal
 from uuid import UUID
-from datetime import date
+from datetime import date, datetime
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 # ==========================================
@@ -208,6 +208,17 @@ class CursoPut(BaseModel):
     message: str
 
 
+class ProgresoEstadoUpdate(BaseModel):
+    estado: Literal["En progreso", "Completado"]
+
+
+class ProgresoEstadoRead(BaseModel):
+    id_curso: UUID
+    id_usuario: UUID
+    estado: Literal["En progreso", "Completado"]
+    porcentaje: float
+
+
 # ==========================================
 # ESQUEMAS DE MÓDULO
 # ==========================================
@@ -303,3 +314,167 @@ class LeccionPut(BaseModel):
     data: LeccionRead
     status: int
     message: str
+
+
+# ==========================================
+# ESQUEMAS DE PAGO
+# ==========================================
+
+
+class PagoCreate(BaseModel):
+    metodo_pago: str = "efectivo"
+    estado: str = "pagado"
+    id_usuario: UUID
+    id_curso: UUID
+
+
+class PagoUpdate(BaseModel):
+    monto: float | None = Field(default=None, ge=0)
+    metodo_pago: str | None = None
+    estado: str | None = None
+    id_usuario: UUID | None = None
+    id_curso: UUID | None = None
+    id_factura: UUID | None = None
+
+
+class PagoRead(BaseModel):
+    id_pago: UUID
+    monto: float
+    fecha_pago: datetime
+    metodo_pago: str
+    estado: str
+    id_usuario: UUID | None = None
+    id_curso: UUID | None = None
+    id_factura: UUID | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PagoList(BaseModel):
+    data: List[PagoRead]
+    status: int
+    message: str
+
+
+class PagoPost(BaseModel):
+    data: PagoRead
+    status: int
+    message: str
+
+
+class PagoPut(BaseModel):
+    data: PagoRead
+    status: int
+    message: str
+
+
+# ==========================================
+# ESQUEMAS DE FACTURA
+# ==========================================
+
+
+class FacturaCreate(BaseModel):
+    id_inscripcion: UUID
+    id_usuario: UUID
+    id_curso: UUID
+    detalle_cursos: str = "[]"
+    metodo_pago: str = "efectivo"
+    estado: str = "emitida"
+
+
+class FacturaUpdate(BaseModel):
+    numero_factura: str | None = None
+    fecha_emision: datetime | None = None
+    total: float | None = Field(default=None, ge=0)
+    id_inscripcion: UUID | None = None
+    id_usuario: UUID | None = None
+    id_curso: UUID | None = None
+    detalle_cursos: str | None = None
+    metodo_pago: str | None = None
+    estado: str | None = None
+
+
+class FacturaRead(BaseModel):
+    id_factura: UUID
+    numero_factura: str
+    fecha_emision: datetime
+    total: float
+    id_inscripcion: UUID | None = None
+    id_usuario: UUID | None = None
+    id_curso: UUID | None = None
+    detalle_cursos: str | None = None
+    metodo_pago: str
+    estado: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class FacturaList(BaseModel):
+    data: List[FacturaRead]
+    status: int
+    message: str
+
+
+class FacturaPost(BaseModel):
+    data: FacturaRead
+    status: int
+    message: str
+
+
+class FacturaPut(BaseModel):
+    data: FacturaRead
+    status: int
+    message: str
+
+
+# ==========================================
+# ESQUEMAS DE CERTIFICADO
+# ==========================================
+
+
+class CertificadoCreate(BaseModel):
+    codigo: str = ""
+    fecha_emision: datetime | None = None
+    id_usuario: UUID
+    id_curso: UUID
+
+
+class CertificadoUpdate(BaseModel):
+    codigo: str | None = None
+    fecha_emision: datetime | None = None
+
+
+class CertificadoRead(BaseModel):
+    id_certificado: UUID
+    fecha_emision: datetime
+    codigo: str
+    id_usuario: UUID | None = None
+    id_curso: UUID | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CertificadoList(BaseModel):
+    data: List[CertificadoRead]
+    status: int
+    message: str
+
+
+class CertificadoPost(BaseModel):
+    data: CertificadoRead
+    status: int
+    message: str
+
+
+class CertificadoPut(BaseModel):
+    data: CertificadoRead
+    status: int
+    message: str
+
+
+class CertificadoElegibilidad(BaseModel):
+    id_usuario: UUID
+    id_curso: UUID
+    puede_emitirse: bool
+    mensaje: str
+    certificado: CertificadoRead | None = None
