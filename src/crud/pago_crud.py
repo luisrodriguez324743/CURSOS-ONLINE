@@ -63,10 +63,15 @@ class PagoCRUD:
             raise ValueError("El pago no puede ser nulo.")
         if registro.monto < 0:
             raise ValueError("El monto del pago no puede ser negativo.")
-        if not registro.metodo_pago or not registro.metodo_pago.strip():
-            registro.metodo_pago = "efectivo"
+        registro.metodo_pago = FacturaCRUD.validar_metodo_pago(
+            registro.metodo_pago or "efectivo"
+        )
         if registro.estado not in {"pendiente", "pagado", "cancelado"}:
             raise ValueError("Estado de pago no válido.")
+        if registro.estado == "pagado":
+            raise ValueError(
+                "Los pagos confirmados deben registrarse junto con su factura."
+            )
 
         session = get_session()
         try:
@@ -80,21 +85,32 @@ class PagoCRUD:
         finally:
             session.close()
 
-    def crear_con_factura(
-        self, pago: Pago, factura: Factura
-    ) -> tuple[Pago, Factura]:
+    def crear_con_factura(self, pago: Pago, factura: Factura) -> tuple[Pago, Factura]:
         if pago is None or factura is None:
             raise ValueError("El pago y la factura son obligatorios.")
         if pago.estado != "pagado":
             raise ValueError("Solo los pagos confirmados generan factura.")
         if pago.monto < 0:
             raise ValueError("El monto del pago no puede ser negativo.")
-        if not pago.metodo_pago or not pago.metodo_pago.strip():
-            pago.metodo_pago = "efectivo"
+        if (
+            pago.id_usuario is None
+            or pago.id_curso is None
+            or factura.id_usuario != pago.id_usuario
+            or factura.id_curso != pago.id_curso
+        ):
+            raise ValueError(
+                "La factura debe corresponder al usuario y curso del pago."
+            )
+        pago.metodo_pago = FacturaCRUD.validar_metodo_pago(
+            pago.metodo_pago or "efectivo"
+        )
         if factura.total != pago.monto:
             raise ValueError("El total de la factura debe coincidir con el pago.")
+        if factura.estado != "pagada":
+            raise ValueError("La factura de un pago confirmado debe estar pagada.")
         if not factura.numero_factura or not factura.numero_factura.strip():
             factura.numero_factura = FacturaCRUD.generar_numero_factura()
+        factura.metodo_pago = pago.metodo_pago
         FacturaCRUD.validar_estado(factura.estado)
 
         session = get_session()
@@ -144,15 +160,42 @@ class PagoCRUD:
             registro = session.get(Pago, identificador)
             if registro is None:
                 return None
+            estado_anterior = registro.estado
+            campos_pago_confirmado = {
+                "monto",
+                "metodo_pago",
+                "id_usuario",
+                "id_curso",
+                "id_factura",
+            }
+            if estado_anterior == "pagado" and campos_pago_confirmado.intersection(
+                cambios
+            ):
+                raise ValueError(
+                    "Los datos de un pago confirmado no se pueden modificar."
+                )
             for nombre, valor in cambios.items():
-                if nombre != "id_pago" and hasattr(registro, nombre):
+                if nombre not in {"id_pago", "id_factura"} and hasattr(
+                    registro, nombre
+                ):
                     setattr(registro, nombre, valor)
             if registro.monto < 0:
                 raise ValueError("El monto del pago no puede ser negativo.")
-            if registro.metodo_pago is not None and not registro.metodo_pago.strip():
-                registro.metodo_pago = "efectivo"
+            registro.metodo_pago = FacturaCRUD.validar_metodo_pago(
+                registro.metodo_pago or "efectivo"
+            )
             if registro.estado not in {"pendiente", "pagado", "cancelado"}:
                 raise ValueError("Estado de pago no válido.")
+            if estado_anterior == "pagado" and registro.estado == "pendiente":
+                raise ValueError("Un pago confirmado no puede volver a pendiente.")
+            if estado_anterior == "cancelado" and registro.estado != "cancelado":
+                raise ValueError("Un pago cancelado no se puede reactivar.")
+            if estado_anterior != "pagado" and registro.estado == "pagado":
+                self._generar_factura_para_pago(session, registro)
+            elif estado_anterior == "pagado" and registro.estado == "cancelado":
+                factura = session.get(Factura, registro.id_factura)
+                if factura is not None:
+                    factura.estado = "anulada"
             session.commit()
             session.refresh(registro)
             return registro
@@ -161,6 +204,51 @@ class PagoCRUD:
             raise ValueError("No se pudo actualizar el pago.") from exc
         finally:
             session.close()
+
+    @staticmethod
+    def _generar_factura_para_pago(session, pago: Pago) -> Factura:
+        if pago.id_usuario is None or pago.id_curso is None:
+            raise ValueError("El pago requiere un usuario y un curso.")
+        inscripcion = (
+            session.query(Inscripcion)
+            .filter_by(id_usuario=pago.id_usuario, id_curso=pago.id_curso)
+            .first()
+        )
+        if inscripcion is None:
+            raise ValueError(
+                "El usuario debe estar inscrito en este curso antes de confirmar el pago."
+            )
+
+        if pago.id_factura is not None:
+            factura = session.get(Factura, pago.id_factura)
+            if (
+                factura is None
+                or factura.id_usuario != pago.id_usuario
+                or factura.id_curso != pago.id_curso
+                or factura.id_inscripcion != inscripcion.id_inscripcion
+                or factura.total != pago.monto
+                or factura.estado not in {"emitida", "pagada"}
+            ):
+                raise ValueError(
+                    "La factura vinculada no coincide con los datos del pago."
+                )
+            factura.estado = "pagada"
+            factura.metodo_pago = pago.metodo_pago
+            return factura
+
+        factura = Factura(
+            numero_factura=FacturaCRUD.generar_numero_factura(),
+            total=pago.monto,
+            id_inscripcion=inscripcion.id_inscripcion,
+            id_usuario=pago.id_usuario,
+            id_curso=pago.id_curso,
+            metodo_pago=pago.metodo_pago,
+            estado="pagada",
+        )
+        session.add(factura)
+        session.flush()
+        pago.id_factura = factura.id_factura
+        return factura
 
     def obtener(self, identificador: UUID) -> Pago | None:
         session = get_session()
