@@ -334,7 +334,6 @@ class PagoUpdate(BaseModel):
     estado: str | None = None
     id_usuario: UUID | None = None
     id_curso: UUID | None = None
-    id_factura: UUID | None = None
 
 
 class PagoRead(BaseModel):
