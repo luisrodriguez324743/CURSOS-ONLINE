@@ -1,3 +1,5 @@
+from sqlalchemy import inspect, text
+
 from src.database.connection import Base, engine
 
 from src.entities.certificado import Certificado
@@ -17,7 +19,19 @@ from src.entities.usuario import Usuario
 def init_db() -> None:
     print("Creando tablas en la base de datos...")
     Base.metadata.create_all(bind=engine)
+    constraint_name = "uq_certificado_usuario_curso"
+    constraints = inspect(engine).get_unique_constraints("certificado")
+    if not any(constraint.get("name") == constraint_name for constraint in constraints):
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "ALTER TABLE certificado "
+                    "ADD CONSTRAINT uq_certificado_usuario_curso "
+                    "UNIQUE (id_usuario, id_curso)"
+                )
+            )
     print("¡Tablas creadas correctamente!")
+
 
 if __name__ == "__main__":
     init_db()
