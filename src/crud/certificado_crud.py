@@ -14,25 +14,37 @@ class CertificadoCRUD:
         pagos: list,
         facturas: list,
         progresos: list,
+        inscripciones: list,
         id_usuario: UUID,
         id_curso: UUID,
     ) -> tuple[bool, str]:
+        inscripcion = next(
+            (
+                registro
+                for registro in inscripciones
+                if registro.id_usuario == id_usuario
+                and registro.id_curso == id_curso
+            ),
+            None,
+        )
+        pagos_curso = [
+            registro
+            for registro in pagos
+            if registro.id_usuario == id_usuario and registro.id_curso == id_curso
+        ]
         pago = next(
             (
                 registro
-                for registro in pagos
-                if registro.id_usuario == id_usuario and registro.id_curso == id_curso
+                for registro in pagos_curso
+                if registro.estado == "pagado"
             ),
             None,
         )
-        factura = next(
-            (
-                registro
-                for registro in facturas
-                if registro.id_usuario == id_usuario and registro.id_curso == id_curso
-            ),
-            None,
-        )
+        facturas_curso = [
+            registro
+            for registro in facturas
+            if registro.id_usuario == id_usuario and registro.id_curso == id_curso
+        ]
         progreso = next(
             (
                 registro
@@ -44,18 +56,31 @@ class CertificadoCRUD:
             None,
         )
 
+        if inscripcion is None:
+            return False, "El usuario no está inscrito en este curso."
+        if inscripcion.estado != "activa":
+            return False, "La inscripción del usuario no está activa."
         if pago is None:
+            if pagos_curso:
+                return False, "El pago aún no está confirmado."
             return False, "No existe un pago registrado para este curso."
-        if pago.estado != "pagado":
-            return False, "El pago aún no está confirmado."
+        factura = next(
+            (
+                registro
+                for registro in facturas_curso
+                if registro.estado == "pagada"
+                and registro.id_factura == pago.id_factura
+            ),
+            None,
+        )
         if factura is None:
-            return False, "No existe una factura asociada al curso."
-        if factura.estado != "pagada":
-            return False, "La factura aún no está pagada."
+            return False, "No existe una factura pagada vinculada al pago."
         if progreso is None:
             return False, "No existe progreso registrado para este curso."
         if progreso.porcentaje < 100:
             return False, "El progreso aún no llega al 100% para emitir el certificado."
+        if progreso.estado != "Completado":
+            return False, "El curso aún no está marcado como completado."
 
         return True, "Certificado disponible."
 
@@ -65,12 +90,13 @@ class CertificadoCRUD:
         pagos: list,
         facturas: list,
         progresos: list,
+        inscripciones: list,
         id_usuario: UUID,
         id_curso: UUID,
         mostrar_mensaje: bool = True,
     ) -> Certificado | None:
         ok, mensaje = cls.puede_emitirse(
-            pagos, facturas, progresos, id_usuario, id_curso
+            pagos, facturas, progresos, inscripciones, id_usuario, id_curso
         )
         if not ok and mostrar_mensaje:
             print(mensaje)
