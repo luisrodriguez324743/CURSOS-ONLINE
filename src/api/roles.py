@@ -1,4 +1,3 @@
-from typing import Any, Dict
 from uuid import UUID
 from http import HTTPStatus
 from fastapi import APIRouter, HTTPException
@@ -8,14 +7,15 @@ from src.api.schemas import (
     RolCreate,
     RolRead,
     RolPost,
+    RolList,
 )
 
 roles_router = APIRouter(prefix="/roles", tags=["roles"])
 rol_crud = RolCRUD()
 
 
-@roles_router.get("/", response_model=Dict[str, Any])
-def listar_roles() -> Dict[str, Any]:
+@roles_router.get("/", response_model=RolList)
+def listar_roles() -> RolList:
     roles = rol_crud.listar()
     if not roles:
         raise HTTPException(
