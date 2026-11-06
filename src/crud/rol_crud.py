@@ -44,3 +44,31 @@ class RolCRUD:
             )
         finally:
             session.close()
+
+    def actualizar(
+        self, identificador: UUID, nombre_rol: str, descripcion: str | None
+    ) -> Rol | None:
+        session = get_session()
+        try:
+            rol = session.get(Rol, identificador)
+            if rol is None:
+                return None
+            rol.nombre_rol = nombre_rol
+            rol.descripcion = descripcion
+            session.commit()
+            session.refresh(rol)
+            return rol
+        finally:
+            session.close()
+
+    def eliminar(self, identificador: UUID) -> bool:
+        session = get_session()
+        try:
+            rol = session.get(Rol, identificador)
+            if rol is None:
+                return False
+            session.delete(rol)
+            session.commit()
+            return True
+        finally:
+            session.close()

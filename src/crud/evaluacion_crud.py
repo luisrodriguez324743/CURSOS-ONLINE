@@ -62,6 +62,12 @@ class EvaluacionCRUD(CRUD[Evaluacion]):
         self, identificador: UUID, cambios: dict[str, Any]
     ) -> Evaluacion | None:
         """Actualiza los datos de una evaluación existente."""
+        nombre = cambios.get("nombre")
+        if nombre is not None and not nombre.strip():
+            raise ValueError("La evaluación debe tener un nombre.")
+        calificacion = cambios.get("calificacion")
+        if calificacion is not None and not 0 <= calificacion <= 100:
+            raise ValueError("La calificación debe estar entre 0 y 100.")
         return super().actualizar(identificador, cambios)
 
     def eliminar(self, identificador: UUID) -> bool:

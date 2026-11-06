@@ -3,7 +3,7 @@ from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from src.crud.evaluacion_crud import EvaluacionCRUD
 from src.crud.inscripcion_crud import InscripcionCRUD
@@ -34,13 +34,13 @@ router_evaluaciones = APIRouter(
 
 
 class InscripcionCreate(BaseModel):
-    estado: str = "activa"
+    estado: str = Field(default="activa", min_length=1, max_length=20)
     id_usuario: Optional[UUID] = None
     id_curso: Optional[UUID] = None
 
 
 class InscripcionUpdate(BaseModel):
-    estado: Optional[str] = None
+    estado: Optional[str] = Field(default=None, min_length=1, max_length=20)
     id_usuario: Optional[UUID] = None
     id_curso: Optional[UUID] = None
 
@@ -149,16 +149,16 @@ def eliminar_inscripcion(id_inscripcion: UUID) -> None:
 # SCHEMAS DE PROGRESO
 
 class ProgresoCreate(BaseModel):
-    porcentaje: float = 0.0
-    estado: str = ""
+    porcentaje: float = Field(default=0.0, ge=0, le=100)
+    estado: str = Field(default="En progreso", min_length=1, max_length=30)
     id_usuario: Optional[UUID] = None
     id_curso: Optional[UUID] = None
     id_leccion: Optional[UUID] = None
 
 
 class ProgresoUpdate(BaseModel):
-    porcentaje: Optional[float] = None
-    estado: Optional[str] = None
+    porcentaje: Optional[float] = Field(default=None, ge=0, le=100)
+    estado: Optional[str] = Field(default=None, min_length=1, max_length=30)
     id_usuario: Optional[UUID] = None
     id_curso: Optional[UUID] = None
     id_leccion: Optional[UUID] = None
@@ -274,17 +274,17 @@ def eliminar_progreso(id_progreso: UUID) -> None:
 # SCHEMAS DE EVALUACIÓN
 
 class EvaluacionCreate(BaseModel):
-    nombre: str
+    nombre: str = Field(min_length=1, max_length=150)
     descripcion: str
-    calificacion: float = 0.0
+    calificacion: float = Field(default=0.0, ge=0, le=100)
     id_leccion: Optional[UUID] = None
     id_usuario: Optional[UUID] = None
 
 
 class EvaluacionUpdate(BaseModel):
-    nombre: Optional[str] = None
+    nombre: Optional[str] = Field(default=None, min_length=1, max_length=150)
     descripcion: Optional[str] = None
-    calificacion: Optional[float] = None
+    calificacion: Optional[float] = Field(default=None, ge=0, le=100)
     id_leccion: Optional[UUID] = None
     id_usuario: Optional[UUID] = None
 
@@ -347,7 +347,13 @@ def crear_evaluacion(datos: EvaluacionCreate) -> Evaluacion:
         id_usuario=datos.id_usuario,
     )
 
-    return crud.crear(nueva_evaluacion)
+    try:
+        return crud.crear(nueva_evaluacion)
+    except ValueError as error:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(error),
+        ) from error
 
 
 @router_evaluaciones.put(
@@ -363,10 +369,13 @@ def actualizar_evaluacion(
 
     cambios = datos.model_dump(exclude_unset=True)
 
-    evaluacion = crud.actualizar(
-        id_evaluacion,
-        cambios,
-    )
+    try:
+        evaluacion = crud.actualizar(id_evaluacion, cambios)
+    except ValueError as error:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(error),
+        ) from error
 
     if evaluacion is None:
         raise HTTPException(

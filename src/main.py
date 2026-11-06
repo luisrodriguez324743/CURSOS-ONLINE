@@ -13,6 +13,11 @@ from src.api.pagos import pagos_router
 from src.api.facturas import facturas_router
 from src.api.certificados import certificados_router
 from src.api.progresos import progresos_router
+from src.endpoints import (
+    router_evaluaciones,
+    router_inscripciones,
+    router_progresos,
+)
 
 app = FastAPI(
     title="CURSO-ONLINE",
@@ -39,6 +44,8 @@ app.include_router(facturas_router)
 app.include_router(certificados_router)
 app.include_router(progresos_router)
 app.include_router(router_inscripciones)
+app.include_router(router_progresos)
+app.include_router(router_evaluaciones)
 
 
 @app.get("/")
