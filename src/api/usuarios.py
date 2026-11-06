@@ -6,13 +6,14 @@ from src.crud import usuario_crud
 from http import HTTPStatus
 
 from src.api.schemas import (
-    UsuarioCreate, 
-    UsuarioLogin, 
-    UsuarioRead, 
-    UsuarioUpdate, 
+    UsuarioCreate,
+    UsuarioLogin,
+    UsuarioRead,
+    UsuarioUpdate,
     UsuarioList,
-    usuarioPost, 
-    usuarioPut)
+    usuarioPost,
+    usuarioPut,
+)
 
 usuarios_router = APIRouter(prefix="/usuarios", tags=["usuarios"])
 
@@ -24,7 +25,7 @@ def get_usuarios() -> UsuarioList:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND.value, detail="No se encontraron usuarios"
         )
-     
+
     return {
         "data": usuarios,
         "status": HTTPStatus.OK.value,
@@ -47,38 +48,50 @@ def iniciar_sesion(datos: UsuarioLogin):
 def obtener_usuario(id_usuario: UUID):
     usuario = usuario_crud.obtener_por_id(id_usuario)
     if usuario is None:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND.value, detail="Usuario no encontrado")
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND.value, detail="Usuario no encontrado"
+        )
     return usuario
 
 
-@usuarios_router.post("/", response_model=usuarioPost, status_code=HTTPStatus.CREATED.value)
+@usuarios_router.post(
+    "/", response_model=usuarioPost, status_code=HTTPStatus.CREATED.value
+)
 def crear_usuario(datos: UsuarioCreate):
     usuario = usuario_crud.crear(**datos.model_dump())
 
     if usuario is None:
-        raise HTTPException(status_code=HTTPStatus.CONFLICT.value, detail="El nombre de usuario o correo ya existe")
+        raise HTTPException(
+            status_code=HTTPStatus.CONFLICT.value,
+            detail="El nombre de usuario o correo ya existe",
+        )
 
-    return{
+    return {
         "data": usuario,
         "status": HTTPStatus.CREATED.value,
         "message": f"Usuario {usuario.nombre_usuario} creado exitosamente",
     }
 
-    
+
 @usuarios_router.put("/{id_usuario}", response_model=usuarioPut)
 def actualizar_usuario(id_usuario: UUID, datos: UsuarioUpdate):
-    usuario_existente = usuario_crud.obtener_por_id(id_usuario)
-    if usuario_existente is None:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND.value, detail="Usuario no encontrado")
-    
+    datos = usuario_crud.obtener_por_id(id_usuario)
+    if usuario_crud.obtener_por_id(id_usuario) is None:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND.value, detail="Usuario no encontrado"
+        )
+
     usuario = usuario_crud.actualizar(
         id_usuario,
         **datos.model_dump(exclude_unset=True),
     )
     if usuario is None:
-        raise HTTPException(status_code=HTTPStatus.CONFLICT.value, detail="El nombre de usuario o correo ya existe",)
+        raise HTTPException(
+            status_code=HTTPStatus.CONFLICT.value,
+            detail="El nombre de usuario o correo ya existe",
+        )
 
-    return{
+    return {
         "data": usuario,
         "status": HTTPStatus.OK.value,
         "message": f"Usuario {usuario.nombre_usuario} actualizado exitosamente",
@@ -88,4 +101,6 @@ def actualizar_usuario(id_usuario: UUID, datos: UsuarioUpdate):
 @usuarios_router.delete("/{id_usuario}", status_code=HTTPStatus.NO_CONTENT.value)
 def eliminar_usuario(id_usuario: UUID):
     if not usuario_crud.eliminar(id_usuario):
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND.value, detail="Usuario no encontrado")
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND.value, detail="Usuario no encontrado"
+        )

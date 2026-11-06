@@ -22,8 +22,7 @@ class CertificadoCRUD:
             (
                 registro
                 for registro in inscripciones
-                if registro.id_usuario == id_usuario
-                and registro.id_curso == id_curso
+                if registro.id_usuario == id_usuario and registro.id_curso == id_curso
             ),
             None,
         )
@@ -33,11 +32,7 @@ class CertificadoCRUD:
             if registro.id_usuario == id_usuario and registro.id_curso == id_curso
         ]
         pago = next(
-            (
-                registro
-                for registro in pagos_curso
-                if registro.estado == "pagado"
-            ),
+            (registro for registro in pagos_curso if registro.estado == "pagado"),
             None,
         )
         facturas_curso = [
@@ -114,6 +109,8 @@ class CertificadoCRUD:
     def crear(self, registro: Certificado) -> Certificado:
         if registro is None:
             raise ValueError("El certificado no puede ser nulo.")
+        if registro.id_usuario is None or registro.id_curso is None:
+            raise ValueError("El certificado requiere un usuario y un curso.")
         if registro.id_certificado is None:
             registro.id_certificado = uuid4()
         if not registro.codigo:
@@ -121,6 +118,13 @@ class CertificadoCRUD:
 
         session = get_session()
         try:
+            existente = (
+                session.query(Certificado)
+                .filter_by(id_usuario=registro.id_usuario, id_curso=registro.id_curso)
+                .first()
+            )
+            if existente is not None:
+                raise ValueError("Ya existe un certificado para este usuario y curso.")
             session.add(registro)
             session.commit()
             session.refresh(registro)

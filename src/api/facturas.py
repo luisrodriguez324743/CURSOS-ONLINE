@@ -15,6 +15,7 @@ from src.api.schemas import (
 from src.crud.factura_crud import FacturaCRUD
 from src.crud.curso_crud import CursoCRUD
 from src.crud.inscripcion_crud import InscripcionCRUD
+from src.crud.pago_crud import PagoCRUD
 from src.crud import usuario_crud
 from src.entities.factura import Factura
 
@@ -22,6 +23,7 @@ facturas_router = APIRouter(prefix="/facturas", tags=["facturas"])
 factura_crud = FacturaCRUD()
 curso_crud = CursoCRUD()
 inscripcion_crud = InscripcionCRUD()
+pago_crud = PagoCRUD()
 
 
 @facturas_router.get("/", response_model=FacturaList)
@@ -54,6 +56,7 @@ def obtener_factura(id_factura: UUID) -> Factura:
 )
 def crear_factura(datos: FacturaCreate) -> dict[str, Any]:
     valores = datos.model_dump(exclude_none=True)
+    valores.pop("id_pago", None)
     if usuario_crud.obtener_por_id(datos.id_usuario) is None:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND.value, detail="Usuario no encontrado"
@@ -63,6 +66,27 @@ def crear_factura(datos: FacturaCreate) -> dict[str, Any]:
     if curso is None:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND.value, detail="Curso no encontrado"
+        )
+
+    pago = pago_crud.obtener(datos.id_pago)
+    if pago is None:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND.value, detail="Pago no encontrado"
+        )
+    if pago.estado != "pagado":
+        raise HTTPException(
+            status_code=HTTPStatus.CONFLICT.value,
+            detail="Solo los pagos confirmados pueden generar una factura",
+        )
+    if pago.id_usuario != datos.id_usuario or pago.id_curso != datos.id_curso:
+        raise HTTPException(
+            status_code=HTTPStatus.CONFLICT.value,
+            detail="El pago no corresponde al usuario y curso indicados",
+        )
+    if pago.id_factura is not None:
+        raise HTTPException(
+            status_code=HTTPStatus.CONFLICT.value,
+            detail="El pago ya tiene una factura asociada",
         )
 
     inscripcion = inscripcion_crud.obtener(datos.id_inscripcion)
@@ -85,6 +109,7 @@ def crear_factura(datos: FacturaCreate) -> dict[str, Any]:
 
     try:
         factura = factura_crud.crear(Factura(**valores))
+        pago_crud.actualizar(datos.id_pago, {"id_factura": factura.id_factura})
     except ValueError as error:
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST.value, detail=str(error)) from error
     return {

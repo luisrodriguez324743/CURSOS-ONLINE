@@ -6,12 +6,24 @@ from sqlalchemy.exc import IntegrityError
 
 from src.database.connection import get_session
 from src.entities.factura import Factura
+from src.entities.pago import Pago
 
 
 class FacturaCRUD:
+    METODOS_PAGO = {"tarjeta", "transferencia", "efectivo"}
+
     @staticmethod
     def generar_numero_factura() -> str:
         return f"FAC-{uuid4().hex[:8].upper()}"
+
+    @classmethod
+    def validar_metodo_pago(cls, metodo_pago: str) -> str:
+        if not isinstance(metodo_pago, str):
+            raise ValueError("Método de pago no válido.")
+        metodo = metodo_pago.strip().lower()
+        if metodo not in cls.METODOS_PAGO:
+            raise ValueError("Método de pago no válido.")
+        return metodo
 
     @staticmethod
     def validar_total(total: float) -> None:
@@ -64,9 +76,14 @@ class FacturaCRUD:
         self.validar_total(registro.total)
         if not registro.numero_factura or not registro.numero_factura.strip():
             registro.numero_factura = self.generar_numero_factura()
-        if not registro.metodo_pago or not registro.metodo_pago.strip():
-            registro.metodo_pago = "efectivo"
+        registro.metodo_pago = self.validar_metodo_pago(
+            registro.metodo_pago or "efectivo"
+        )
         self.validar_estado(registro.estado)
+        if registro.estado == "pagada":
+            raise ValueError(
+                "Las facturas pagadas deben generarse junto con un pago confirmado."
+            )
 
         session = get_session()
         try:
@@ -103,15 +120,37 @@ class FacturaCRUD:
             registro = session.get(Factura, identificador)
             if registro is None:
                 return None
+            estado_anterior = registro.estado
             for nombre, valor in cambios.items():
                 if nombre != "id_factura" and hasattr(registro, nombre):
                     setattr(registro, nombre, valor)
             if registro.total < 0:
                 raise ValueError("El total de la factura no puede ser negativo.")
-            if registro.metodo_pago is not None and not registro.metodo_pago.strip():
-                registro.metodo_pago = "efectivo"
+            registro.metodo_pago = self.validar_metodo_pago(
+                registro.metodo_pago or "efectivo"
+            )
             if registro.estado not in {"emitida", "pagada", "anulada"}:
                 raise ValueError("Estado de factura no válido.")
+            if estado_anterior == "pagada" and registro.estado != "pagada":
+                raise ValueError(
+                    "Anule una factura pagada cancelando el pago asociado."
+                )
+            if registro.estado == "pagada":
+                pago = (
+                    session.query(Pago)
+                    .filter_by(id_factura=registro.id_factura, estado="pagado")
+                    .first()
+                )
+                if (
+                    pago is None
+                    or pago.monto != registro.total
+                    or pago.id_usuario != registro.id_usuario
+                    or pago.id_curso != registro.id_curso
+                    or pago.metodo_pago != registro.metodo_pago
+                ):
+                    raise ValueError(
+                        "La factura solo puede estar pagada si coincide con un pago confirmado."
+                    )
             session.commit()
             session.refresh(registro)
             return registro

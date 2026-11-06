@@ -50,15 +50,19 @@ def listar_certificados() -> dict[str, Any]:
 def revisar_elegibilidad_certificado(
     id_usuario: UUID, id_curso: UUID
 ) -> dict[str, Any]:
-    puede_emitirse, mensaje = certificado_crud.puede_emitirse(
-        pagos=pago_crud.listar(),
-        facturas=factura_crud.listar(),
-        progresos=progreso_crud.listar(),
-        inscripciones=inscripcion_crud.listar(),
-        id_usuario=id_usuario,
-        id_curso=id_curso,
-    )
     certificado = certificado_crud.obtener_por_usuario_curso(id_usuario, id_curso)
+    if certificado is not None:
+        puede_emitirse = False
+        mensaje = "Ya existe un certificado para este usuario y curso."
+    else:
+        puede_emitirse, mensaje = certificado_crud.puede_emitirse(
+            pagos=pago_crud.listar(),
+            facturas=factura_crud.listar(),
+            progresos=progreso_crud.listar(),
+            inscripciones=inscripcion_crud.listar(),
+            id_usuario=id_usuario,
+            id_curso=id_curso,
+        )
     return {
         "id_usuario": id_usuario,
         "id_curso": id_curso,
@@ -94,6 +98,12 @@ def obtener_certificado(id_certificado: UUID) -> Certificado:
     "/", response_model=CertificadoPost, status_code=HTTPStatus.CREATED.value
 )
 def crear_certificado(datos: CertificadoCreate) -> dict[str, Any]:
+    if certificado_crud.obtener_por_usuario_curso(datos.id_usuario, datos.id_curso):
+        raise HTTPException(
+            status_code=HTTPStatus.CONFLICT.value,
+            detail="Ya existe un certificado para este usuario y curso.",
+        )
+
     puede_emitirse, mensaje = certificado_crud.puede_emitirse(
         pagos=pago_crud.listar(),
         facturas=factura_crud.listar(),
@@ -108,9 +118,14 @@ def crear_certificado(datos: CertificadoCreate) -> dict[str, Any]:
             detail=mensaje,
         )
 
-    certificado = certificado_crud.crear(
-        Certificado(**datos.model_dump(exclude_none=True))
-    )
+    try:
+        certificado = certificado_crud.crear(
+            Certificado(**datos.model_dump(exclude_none=True))
+        )
+    except ValueError as error:
+        raise HTTPException(
+            status_code=HTTPStatus.CONFLICT.value, detail=str(error)
+        ) from error
     return {
         "data": certificado,
         "status": HTTPStatus.CREATED.value,

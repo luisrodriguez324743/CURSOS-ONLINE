@@ -345,7 +345,6 @@ class PagoUpdate(BaseModel):
     estado: str | None = None
     id_usuario: UUID | None = None
     id_curso: UUID | None = None
-    id_factura: UUID | None = None
 
 
 class PagoRead(BaseModel):
@@ -385,6 +384,7 @@ class PagoPut(BaseModel):
 
 
 class FacturaCreate(BaseModel):
+    id_pago: UUID
     id_inscripcion: UUID
     id_usuario: UUID
     id_curso: UUID
@@ -453,6 +453,8 @@ class CertificadoCreate(BaseModel):
 class CertificadoUpdate(BaseModel):
     codigo: str | None = None
     fecha_emision: datetime | None = None
+    id_usuario: UUID | None = None
+    id_curso: UUID | None = None
 
 
 class CertificadoRead(BaseModel):
