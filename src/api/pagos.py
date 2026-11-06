@@ -121,8 +121,49 @@ def crear_pago(datos: PagoCreate) -> dict[str, Any]:
 @pagos_router.put("/{id_pago}", response_model=PagoPut)
 def actualizar_pago(id_pago: UUID, datos: PagoUpdate) -> dict[str, Any]:
     cambios = datos.model_dump(exclude_unset=True, exclude_none=True)
+    pago_actual = pago_crud.obtener(id_pago)
+    if pago_actual is None:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND.value, detail="Pago no encontrado"
+        )
+    estado_final = cambios.get("estado", pago_actual.estado)
+    confirmar_pago = estado_final == "pagado" and pago_actual.id_factura is None
+    curso_id = cambios.get("id_curso", pago_actual.id_curso)
+    if curso_id is not None:
+        curso = curso_crud.obtener(curso_id)
+        if curso is None:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND.value, detail="Curso no encontrado"
+            )
+        cambios["monto"] = curso.precio
     try:
         pago = pago_crud.actualizar(id_pago, cambios)
+        if confirmar_pago:
+            if pago.id_usuario is None or pago.id_curso is None:
+                raise ValueError("El pago debe tener usuario y curso para generar factura.")
+            curso = curso_crud.obtener(pago.id_curso)
+            inscripcion = next(
+                (
+                    registro
+                    for registro in inscripcion_crud.listar()
+                    if registro.id_usuario == pago.id_usuario
+                    and registro.id_curso == pago.id_curso
+                ),
+                None,
+            )
+            if curso is None or inscripcion is None:
+                raise ValueError("El pago debe tener un curso y una inscripción relacionados.")
+            factura = Factura(
+                numero_factura="",
+                total=curso.precio,
+                id_inscripcion=inscripcion.id_inscripcion,
+                id_usuario=pago.id_usuario,
+                id_curso=pago.id_curso,
+                metodo_pago=pago.metodo_pago,
+                estado="pagada",
+            )
+            factura = factura_crud.crear(factura)
+            pago = pago_crud.actualizar(id_pago, {"id_factura": factura.id_factura})
     except ValueError as error:
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST.value, detail=str(error)) from error
     if pago is None:
@@ -132,7 +173,7 @@ def actualizar_pago(id_pago: UUID, datos: PagoUpdate) -> dict[str, Any]:
     return {
         "data": pago,
         "status": HTTPStatus.OK.value,
-        "message": "Pago actualizado exitosamente",
+        "message": "Pago actualizado y factura generada" if confirmar_pago else "Pago actualizado exitosamente",
     }
 
 
