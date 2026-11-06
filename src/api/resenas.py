@@ -85,3 +85,11 @@ def actualizar_resena(id_resena: UUID, datos: ResenaUpdate):
         "status": HTTPStatus.OK.value,
         "message": "Reseña actualizada exitosamente",
     }
+
+
+@resenas_router.delete("/{id_resena}", status_code=HTTPStatus.NO_CONTENT.value)
+def eliminar_resena(id_resena: UUID) -> None:
+    if not resena_crud.eliminar(id_resena):
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND.value, detail="Reseña no encontrada"
+        )

@@ -83,6 +83,11 @@ class RolCreate(BaseModel):
     descripcion: str | None = None
 
 
+class RolUpdate(BaseModel):
+    nombre_rol: str
+    descripcion: str | None = None
+
+
 class RolRead(BaseModel):
     id_rol: UUID
     nombre_rol: str
@@ -92,6 +97,12 @@ class RolRead(BaseModel):
 
 
 class RolPost(BaseModel):
+    data: RolRead
+    status: int
+    message: str
+
+
+class RolPut(BaseModel):
     data: RolRead
     status: int
     message: str
