@@ -1,6 +1,7 @@
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from src.endpoints import router_inscripciones
 
 from src.api.usuarios import usuarios_router
 from src.api.roles import roles_router
@@ -37,6 +38,7 @@ app.include_router(pagos_router)
 app.include_router(facturas_router)
 app.include_router(certificados_router)
 app.include_router(progresos_router)
+app.include_router(router_inscripciones)
 
 
 @app.get("/")
