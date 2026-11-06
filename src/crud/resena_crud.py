@@ -79,6 +79,18 @@ class ResenaCRUD:
         finally:
             session.close()
 
+    def eliminar(self, identificador: UUID) -> bool:
+        session = get_session()
+        try:
+            resena = session.get(Resena, identificador)
+            if resena is None:
+                return False
+            session.delete(resena)
+            session.commit()
+            return True
+        finally:
+            session.close()
+
     def promedio_calificacion_curso(self, id_curso: UUID) -> float:
         """Calcula el promedio de calificación usando funciones agregadas de la base de datos."""
         session = get_session()
