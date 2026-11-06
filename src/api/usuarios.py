@@ -67,8 +67,8 @@ def crear_usuario(datos: UsuarioCreate):
     
 @usuarios_router.put("/{id_usuario}", response_model=usuarioPut)
 def actualizar_usuario(id_usuario: UUID, datos: UsuarioUpdate):
-    datos = usuario_crud.obtener_por_id(id_usuario)
-    if usuario_crud.obtener_por_id(id_usuario) is None:
+    usuario_existente = usuario_crud.obtener_por_id(id_usuario)
+    if usuario_existente is None:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND.value, detail="Usuario no encontrado")
     
     usuario = usuario_crud.actualizar(
