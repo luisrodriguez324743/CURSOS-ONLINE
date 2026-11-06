@@ -111,7 +111,9 @@ def crear_factura(datos: FacturaCreate) -> dict[str, Any]:
         factura = factura_crud.crear(Factura(**valores))
         pago_crud.actualizar(datos.id_pago, {"id_factura": factura.id_factura})
     except ValueError as error:
-        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST.value, detail=str(error)) from error
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST.value, detail=str(error)
+        ) from error
     return {
         "data": factura,
         "status": HTTPStatus.CREATED.value,
@@ -122,10 +124,59 @@ def crear_factura(datos: FacturaCreate) -> dict[str, Any]:
 @facturas_router.put("/{id_factura}", response_model=FacturaPut)
 def actualizar_factura(id_factura: UUID, datos: FacturaUpdate) -> dict[str, Any]:
     cambios = datos.model_dump(exclude_unset=True, exclude_none=True)
+    factura_actual = factura_crud.obtener(id_factura)
+    if factura_actual is None:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND.value, detail="Factura no encontrada"
+        )
+    usuario_id = cambios.get("id_usuario", factura_actual.id_usuario)
+    curso_id = cambios.get("id_curso", factura_actual.id_curso)
+    inscripcion_id = cambios.get("id_inscripcion", factura_actual.id_inscripcion)
+    pago_vinculado = next(
+        (pago for pago in pago_crud.listar() if pago.id_factura == id_factura),
+        None,
+    )
+    relaciones_cambiadas = (
+        usuario_id != factura_actual.id_usuario
+        or curso_id != factura_actual.id_curso
+        or inscripcion_id != factura_actual.id_inscripcion
+    )
+    if pago_vinculado is not None and relaciones_cambiadas:
+        raise HTTPException(
+            status_code=HTTPStatus.CONFLICT.value,
+            detail="No se pueden cambiar las relaciones de una factura vinculada a un pago",
+        )
+    if relaciones_cambiadas:
+        if usuario_id is None or curso_id is None or inscripcion_id is None:
+            raise HTTPException(
+                status_code=HTTPStatus.CONFLICT.value,
+                detail="La factura necesita usuario, curso e inscripción relacionados",
+            )
+        if usuario_crud.obtener_por_id(usuario_id) is None:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND.value, detail="Usuario no encontrado"
+            )
+        if curso_crud.obtener(curso_id) is None:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND.value, detail="Curso no encontrado"
+            )
+        inscripcion = inscripcion_crud.obtener(inscripcion_id)
+        if inscripcion is None:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND.value,
+                detail="Inscripción no encontrada",
+            )
+        if inscripcion.id_usuario != usuario_id or inscripcion.id_curso != curso_id:
+            raise HTTPException(
+                status_code=HTTPStatus.CONFLICT.value,
+                detail="La inscripción no corresponde al usuario y curso indicados",
+            )
     try:
         factura = factura_crud.actualizar(id_factura, cambios)
     except ValueError as error:
-        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST.value, detail=str(error)) from error
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST.value, detail=str(error)
+        ) from error
     if factura is None:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND.value, detail="Factura no encontrada"
